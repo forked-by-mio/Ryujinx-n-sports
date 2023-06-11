@@ -37,9 +37,9 @@ namespace Ryujinx.Graphics.Shader.StructuredIr
 
             Config = config;
 
-            if (config.GpPassthrough)
+            if (config.Definitions.GpPassthrough)
             {
-                int passthroughAttributes = config.PassthroughAttributes;
+                int passthroughAttributes = config.AttributeUsage.PassthroughAttributes;
                 while (passthroughAttributes != 0)
                 {
                     int index = BitOperations.TrailingZeroCount(passthroughAttributes);
@@ -53,7 +53,7 @@ namespace Ryujinx.Graphics.Shader.StructuredIr
                 Info.IoDefinitions.Add(new IoDefinition(StorageKind.Input, IoVariable.PointSize));
                 Info.IoDefinitions.Add(new IoDefinition(StorageKind.Input, IoVariable.ClipDistance));
             }
-            else if (config.Stage == ShaderStage.Fragment)
+            else if (config.Definitions.Stage == ShaderStage.Fragment)
             {
                 // Potentially used for texture coordinate scaling.
                 Info.IoDefinitions.Add(new IoDefinition(StorageKind.Input, IoVariable.FragmentCoord));

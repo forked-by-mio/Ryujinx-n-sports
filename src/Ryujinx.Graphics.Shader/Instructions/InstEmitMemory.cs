@@ -27,9 +27,9 @@ namespace Ryujinx.Graphics.Shader.Instructions
 
         public static void Atoms(EmitterContext context)
         {
-            if (context.Config.Stage != ShaderStage.Compute)
+            if (context.Config.Definitions.Stage != ShaderStage.Compute)
             {
-                context.Config.GpuAccessor.Log($"Atoms instruction is not valid on \"{context.Config.Stage}\" stage.");
+                context.Config.GpuAccessor.Log($"Atoms instruction is not valid on \"{context.Config.Definitions.Stage}\" stage.");
                 return;
             }
 
@@ -120,9 +120,9 @@ namespace Ryujinx.Graphics.Shader.Instructions
 
         public static void Lds(EmitterContext context)
         {
-            if (context.Config.Stage != ShaderStage.Compute)
+            if (context.Config.Definitions.Stage != ShaderStage.Compute)
             {
-                context.Config.GpuAccessor.Log($"Lds instruction is not valid on \"{context.Config.Stage}\" stage.");
+                context.Config.GpuAccessor.Log($"Lds instruction is not valid on \"{context.Config.Definitions.Stage}\" stage.");
                 return;
             }
 
@@ -156,9 +156,9 @@ namespace Ryujinx.Graphics.Shader.Instructions
 
         public static void Sts(EmitterContext context)
         {
-            if (context.Config.Stage != ShaderStage.Compute)
+            if (context.Config.Definitions.Stage != ShaderStage.Compute)
             {
-                context.Config.GpuAccessor.Log($"Sts instruction is not valid on \"{context.Config.Stage}\" stage.");
+                context.Config.GpuAccessor.Log($"Sts instruction is not valid on \"{context.Config.Definitions.Stage}\" stage.");
                 return;
             }
 

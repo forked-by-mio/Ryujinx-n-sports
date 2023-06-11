@@ -13,8 +13,8 @@ namespace Ryujinx.Graphics.Shader.Translation
     {
         public static void RunPass(HelperFunctionManager hfm, BasicBlock[] blocks, ShaderConfig config)
         {
-            bool isVertexShader = config.Stage == ShaderStage.Vertex;
-            bool isImpreciseFragmentShader = config.Stage == ShaderStage.Fragment && config.GpuAccessor.QueryHostReducedPrecision();
+            bool isVertexShader = config.Definitions.Stage == ShaderStage.Vertex;
+            bool isImpreciseFragmentShader = config.Definitions.Stage == ShaderStage.Fragment && config.GpuAccessor.QueryHostReducedPrecision();
             bool hasConstantBufferDrawParameters = config.GpuAccessor.QueryHasConstantBufferDrawParameters();
             bool hasVectorIndexingBug = config.GpuAccessor.QueryHostHasVectorIndexingBug();
             bool supportsSnormBufferTextureFormat = config.GpuAccessor.QueryHostSupportsSnormBufferTextureFormat();
@@ -283,7 +283,7 @@ namespace Ryujinx.Graphics.Shader.Translation
                 (intCoords || isImage) &&
                 !isBindless &&
                 !isIndexed &&
-                config.Stage.SupportsRenderScale() &&
+                config.Definitions.Stage.SupportsRenderScale() &&
                 TypeSupportsScale(texOp.Type))
             {
                 int functionId = hfm.GetOrCreateFunctionId(HelperFunctionName.TexelFetchScale);
@@ -296,7 +296,7 @@ namespace Ryujinx.Graphics.Shader.Translation
                     Operand scaledCoord = Local();
                     Operand[] callArgs;
 
-                    if (config.Stage == ShaderStage.Fragment)
+                    if (config.Definitions.Stage == ShaderStage.Fragment)
                     {
                         callArgs = new Operand[] { Const(functionId), texOp.GetSource(coordsIndex + index), Const(samplerIndex), Const(index) };
                     }
@@ -328,7 +328,7 @@ namespace Ryujinx.Graphics.Shader.Translation
                 texOp.Index < 2 &&
                 !isBindless &&
                 !isIndexed &&
-                config.Stage.SupportsRenderScale() &&
+                config.Definitions.Stage.SupportsRenderScale() &&
                 TypeSupportsScale(texOp.Type))
             {
                 int functionId = hfm.GetOrCreateFunctionId(HelperFunctionName.TextureSizeUnscale);

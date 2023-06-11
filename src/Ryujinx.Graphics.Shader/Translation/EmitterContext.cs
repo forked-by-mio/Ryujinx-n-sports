@@ -66,7 +66,7 @@ namespace Ryujinx.Graphics.Shader.Translation
 
         private void EmitStart()
         {
-            if (Config.Stage == ShaderStage.Vertex &&
+            if (Config.Definitions.Stage == ShaderStage.Vertex &&
                 Config.Options.TargetApi == TargetApi.Vulkan &&
                 (Config.Options.Flags & TranslationFlags.VertexA) == 0)
             {
@@ -118,11 +118,11 @@ namespace Ryujinx.Graphics.Shader.Translation
 
         public void FlagAttributeRead(int attribute)
         {
-            if (Config.Stage == ShaderStage.Vertex && attribute == AttributeConsts.InstanceId)
+            if (Config.Definitions.Stage == ShaderStage.Vertex && attribute == AttributeConsts.InstanceId)
             {
                 Config.SetUsedFeature(FeatureFlags.InstanceId);
             }
-            else if (Config.Stage == ShaderStage.Fragment)
+            else if (Config.Definitions.Stage == ShaderStage.Fragment)
             {
                 switch (attribute)
                 {
@@ -136,7 +136,7 @@ namespace Ryujinx.Graphics.Shader.Translation
 
         public void FlagAttributeWritten(int attribute)
         {
-            if (Config.Stage == ShaderStage.Vertex)
+            if (Config.Definitions.Stage == ShaderStage.Vertex)
             {
                 switch (attribute)
                 {
@@ -153,7 +153,7 @@ namespace Ryujinx.Graphics.Shader.Translation
                 }
             }
 
-            if (Config.Stage != ShaderStage.Fragment && attribute == AttributeConsts.Layer)
+            if (Config.Definitions.Stage != ShaderStage.Fragment && attribute == AttributeConsts.Layer)
             {
                 Config.SetUsedFeature(FeatureFlags.RtLayer);
             }
@@ -264,7 +264,7 @@ namespace Ryujinx.Graphics.Shader.Translation
                 this.Store(StorageKind.Output, IoVariable.Position, null, Const(2), this.FPFusedMultiplyAdd(z, ConstF(0.5f), halfW));
             }
 
-            if (Config.Stage != ShaderStage.Geometry && Config.HasLayerInputAttribute)
+            if (Config.Definitions.Stage != ShaderStage.Geometry && Config.HasLayerInputAttribute)
             {
                 Config.SetUsedFeature(FeatureFlags.RtLayer);
 
@@ -312,13 +312,13 @@ namespace Ryujinx.Graphics.Shader.Translation
                 return;
             }
 
-            if (Config.LastInVertexPipeline &&
-                (Config.Stage == ShaderStage.Vertex || Config.Stage == ShaderStage.TessellationEvaluation) &&
+            if (Config.Definitions.LastInVertexPipeline &&
+                (Config.Definitions.Stage == ShaderStage.Vertex || Config.Definitions.Stage == ShaderStage.TessellationEvaluation) &&
                 (Config.Options.Flags & TranslationFlags.VertexA) == 0)
             {
                 PrepareForVertexReturn();
             }
-            else if (Config.Stage == ShaderStage.Geometry)
+            else if (Config.Definitions.Stage == ShaderStage.Geometry)
             {
                 void WritePositionOutput(int primIndex)
                 {
@@ -346,7 +346,7 @@ namespace Ryujinx.Graphics.Shader.Translation
                     this.Store(StorageKind.Output, IoVariable.UserDefined, null, Const(index), Const(3), w);
                 }
 
-                if (Config.GpPassthrough && !Config.GpuAccessor.QueryHostSupportsGeometryShaderPassthrough())
+                if (Config.Definitions.GpPassthrough && !Config.GpuAccessor.QueryHostSupportsGeometryShaderPassthrough())
                 {
                     int inputVertices = Config.GpuAccessor.QueryPrimitiveTopology().ToInputVertices();
 
@@ -354,12 +354,12 @@ namespace Ryujinx.Graphics.Shader.Translation
                     {
                         WritePositionOutput(primIndex);
 
-                        int passthroughAttributes = Config.PassthroughAttributes;
+                        int passthroughAttributes = Config.AttributeUsage.PassthroughAttributes;
                         while (passthroughAttributes != 0)
                         {
                             int index = BitOperations.TrailingZeroCount(passthroughAttributes);
                             WriteUserDefinedOutput(index, primIndex);
-                            Config.SetOutputUserAttribute(index);
+                            Config.AttributeUsage.SetOutputUserAttribute(index);
                             passthroughAttributes &= ~(1 << index);
                         }
 
@@ -369,13 +369,13 @@ namespace Ryujinx.Graphics.Shader.Translation
                     this.EndPrimitive();
                 }
             }
-            else if (Config.Stage == ShaderStage.Fragment)
+            else if (Config.Definitions.Stage == ShaderStage.Fragment)
             {
                 GenerateAlphaToCoverageDitherDiscard();
 
                 bool supportsBgra = Config.GpuAccessor.QueryHostSupportsBgraFormat();
 
-                if (Config.OmapDepth)
+                if (Config.Definitions.OmapDepth)
                 {
                     Operand src = Register(Config.GetDepthRegister(), RegisterType.Gpr);
 
@@ -384,7 +384,7 @@ namespace Ryujinx.Graphics.Shader.Translation
 
                 AlphaTestOp alphaTestOp = Config.GpuAccessor.QueryAlphaTestCompare();
 
-                if (alphaTestOp != AlphaTestOp.Always && (Config.OmapTargets & 8) != 0)
+                if (alphaTestOp != AlphaTestOp.Always && (Config.Definitions.OmapTargets & 8) != 0)
                 {
                     if (alphaTestOp == AlphaTestOp.Never)
                     {
@@ -422,7 +422,7 @@ namespace Ryujinx.Graphics.Shader.Translation
                 {
                     for (int component = 0; component < 4; component++)
                     {
-                        bool componentEnabled = (Config.OmapTargets & (1 << (rtIndex * 4 + component))) != 0;
+                        bool componentEnabled = (Config.Definitions.OmapTargets & (1 << (rtIndex * 4 + component))) != 0;
                         if (!componentEnabled)
                         {
                             continue;
@@ -455,10 +455,10 @@ namespace Ryujinx.Graphics.Shader.Translation
                         }
                     }
 
-                    bool targetEnabled = (Config.OmapTargets & (0xf << (rtIndex * 4))) != 0;
+                    bool targetEnabled = (Config.Definitions.OmapTargets & (0xf << (rtIndex * 4))) != 0;
                     if (targetEnabled)
                     {
-                        Config.SetOutputUserAttribute(rtIndex);
+                        Config.AttributeUsage.SetOutputUserAttribute(rtIndex);
                         regIndexBase += 4;
                     }
                 }
@@ -468,7 +468,7 @@ namespace Ryujinx.Graphics.Shader.Translation
         private void GenerateAlphaToCoverageDitherDiscard()
         {
             // If the feature is disabled, or alpha is not written, then we're done.
-            if (!Config.GpuAccessor.QueryAlphaToCoverageDitherEnable() || (Config.OmapTargets & 8) == 0)
+            if (!Config.GpuAccessor.QueryAlphaToCoverageDitherEnable() || (Config.Definitions.OmapTargets & 8) == 0)
             {
                 return;
             }
