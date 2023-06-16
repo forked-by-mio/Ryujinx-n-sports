@@ -58,7 +58,7 @@ namespace Ryujinx.Graphics.Shader.Instructions
         {
             InstTld op = context.GetOp<InstTld>();
 
-            context.Config.SetUsedFeature(FeatureFlags.IntegerSampling);
+            context.TranslatorContext.SetUsedFeature(FeatureFlags.IntegerSampling);
 
             var lod = op.Lod ? Lod.Ll : Lod.Lz;
 
@@ -69,7 +69,7 @@ namespace Ryujinx.Graphics.Shader.Instructions
         {
             InstTldB op = context.GetOp<InstTldB>();
 
-            context.Config.SetUsedFeature(FeatureFlags.IntegerSampling);
+            context.TranslatorContext.SetUsedFeature(FeatureFlags.IntegerSampling);
 
             var flags = TextureFlags.IntCoords | TextureFlags.Bindless;
             var lod = op.Lod ? Lod.Ll : Lod.Lz;
@@ -225,7 +225,7 @@ namespace Ryujinx.Graphics.Shader.Instructions
             {
                 // For bindless, we don't have any way to know the texture type,
                 // so we assume it's texture buffer when the sampler type is 1D, since that's more common.
-                bool isTypeBuffer = isBindless || context.Config.GpuAccessor.QuerySamplerType(imm) == SamplerType.TextureBuffer;
+                bool isTypeBuffer = isBindless || context.TranslatorContext.GpuAccessor.QuerySamplerType(imm) == SamplerType.TextureBuffer;
                 if (isTypeBuffer)
                 {
                     type = SamplerType.TextureBuffer;
@@ -387,7 +387,7 @@ namespace Ryujinx.Graphics.Shader.Instructions
 
                 if (type == SamplerType.None)
                 {
-                    context.Config.GpuAccessor.Log("Invalid texture sampler type.");
+                    context.TranslatorContext.GpuAccessor.Log("Invalid texture sampler type.");
                     return;
                 }
 
@@ -479,16 +479,16 @@ namespace Ryujinx.Graphics.Shader.Instructions
 
                 if (type == SamplerType.None)
                 {
-                    context.Config.GpuAccessor.Log("Invalid texel fetch sampler type.");
+                    context.TranslatorContext.GpuAccessor.Log("Invalid texel fetch sampler type.");
                     return;
                 }
 
-                context.Config.SetUsedFeature(FeatureFlags.IntegerSampling);
+                context.TranslatorContext.SetUsedFeature(FeatureFlags.IntegerSampling);
 
                 flags = ConvertTextureFlags(tldsOp.Target) | TextureFlags.IntCoords;
 
                 if (tldsOp.Target == TldsTarget.Texture1DLodZero &&
-                    context.Config.GpuAccessor.QuerySamplerType(tldsOp.TidB) == SamplerType.TextureBuffer)
+                    context.TranslatorContext.GpuAccessor.QuerySamplerType(tldsOp.TidB) == SamplerType.TextureBuffer)
                 {
                     type = SamplerType.TextureBuffer;
                     flags &= ~TextureFlags.LodLevel;
@@ -885,7 +885,7 @@ namespace Ryujinx.Graphics.Shader.Instructions
                 return Register(dest++, RegisterType.Gpr);
             }
 
-            int binding = isBindless ? 0 : context.Config.ResourceManager.GetTextureOrImageBinding(
+            int binding = isBindless ? 0 : context.TranslatorContext.ResourceManager.GetTextureOrImageBinding(
                 Instruction.Lod,
                 type,
                 TextureFormat.Unknown,
@@ -1066,7 +1066,7 @@ namespace Ryujinx.Graphics.Shader.Instructions
                 return;
             }
 
-            context.Config.SetUsedFeature(FeatureFlags.IntegerSampling);
+            context.TranslatorContext.SetUsedFeature(FeatureFlags.IntegerSampling);
 
             Operand Ra()
             {
@@ -1107,12 +1107,12 @@ namespace Ryujinx.Graphics.Shader.Instructions
             }
             else
             {
-                type = context.Config.GpuAccessor.QuerySamplerType(imm);
+                type = context.TranslatorContext.GpuAccessor.QuerySamplerType(imm);
             }
 
             TextureFlags flags = isBindless ? TextureFlags.Bindless : TextureFlags.None;
 
-            int binding = isBindless ? 0 : context.Config.ResourceManager.GetTextureOrImageBinding(
+            int binding = isBindless ? 0 : context.TranslatorContext.ResourceManager.GetTextureOrImageBinding(
                 Instruction.TextureSize,
                 type,
                 TextureFormat.Unknown,
@@ -1148,7 +1148,7 @@ namespace Ryujinx.Graphics.Shader.Instructions
             Operand[] dests,
             Operand[] sources)
         {
-            int binding = flags.HasFlag(TextureFlags.Bindless) ? 0 : context.Config.ResourceManager.GetTextureOrImageBinding(
+            int binding = flags.HasFlag(TextureFlags.Bindless) ? 0 : context.TranslatorContext.ResourceManager.GetTextureOrImageBinding(
                 Instruction.TextureSample,
                 type,
                 TextureFormat.Unknown,

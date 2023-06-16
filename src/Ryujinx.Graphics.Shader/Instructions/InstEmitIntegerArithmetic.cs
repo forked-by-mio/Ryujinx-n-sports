@@ -371,7 +371,7 @@ namespace Ryujinx.Graphics.Shader.Instructions
                 }
                 else
                 {
-                    context.Config.GpuAccessor.Log($"Iadd3 has invalid component selection {part}.");
+                    context.TranslatorContext.GpuAccessor.Log($"Iadd3 has invalid component selection {part}.");
                 }
 
                 return src;
@@ -553,7 +553,7 @@ namespace Ryujinx.Graphics.Shader.Instructions
                     modeConv = XmadCop.Csfu;
                     break;
                 default:
-                    context.Config.GpuAccessor.Log($"Invalid XMAD mode \"{mode}\".");
+                    context.TranslatorContext.GpuAccessor.Log($"Invalid XMAD mode \"{mode}\".");
                     return;
             }
 
@@ -632,7 +632,7 @@ namespace Ryujinx.Graphics.Shader.Instructions
                     break;
 
                 default:
-                    context.Config.GpuAccessor.Log($"Invalid XMAD mode \"{mode}\".");
+                    context.TranslatorContext.GpuAccessor.Log($"Invalid XMAD mode \"{mode}\".");
                     return;
             }
 
