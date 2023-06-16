@@ -206,7 +206,12 @@ namespace Ryujinx.Graphics.Shader.Translation.Optimizations
             }
         }
 
-        public static void RunPass(HelperFunctionManager hfm, BasicBlock[] blocks, ShaderConfig config)
+        public static void RunPass(
+            HelperFunctionManager hfm,
+            BasicBlock[] blocks,
+            ResourceManager resourceManager,
+            IGpuAccessor gpuAccessor,
+            TargetLanguage targetLanguage)
         {
             GtsContext gtsContext = new GtsContext(hfm);
 
@@ -221,14 +226,20 @@ namespace Ryujinx.Graphics.Shader.Translation.Optimizations
 
                     if (IsGlobalMemory(operation.StorageKind))
                     {
-                        LinkedListNode<INode> nextNode = ReplaceGlobalMemoryWithStorage(gtsContext, config, block, node);
+                        LinkedListNode<INode> nextNode = ReplaceGlobalMemoryWithStorage(
+                            gtsContext,
+                            resourceManager,
+                            gpuAccessor,
+                            targetLanguage,
+                            block,
+                            node);
 
                         if (nextNode == null)
                         {
                             // The returned value being null means that the global memory replacement failed,
                             // so we just make loads read 0 and stores do nothing.
 
-                            config.GpuAccessor.Log($"Failed to reserve storage buffer for global memory operation \"{operation.Inst}\".");
+                            gpuAccessor.Log($"Failed to reserve storage buffer for global memory operation \"{operation.Inst}\".");
 
                             if (operation.Dest != null)
                             {
@@ -287,7 +298,9 @@ namespace Ryujinx.Graphics.Shader.Translation.Optimizations
 
         private static LinkedListNode<INode> ReplaceGlobalMemoryWithStorage(
             GtsContext gtsContext,
-            ShaderConfig config,
+            ResourceManager resourceManager,
+            IGpuAccessor gpuAccessor,
+            TargetLanguage targetLanguage,
             BasicBlock block,
             LinkedListNode<INode> node)
         {
@@ -304,7 +317,7 @@ namespace Ryujinx.Graphics.Shader.Translation.Optimizations
 
                 Operand offset = result.Offset;
 
-                bool storageUnaligned = config.GpuAccessor.QueryHasUnalignedStorageBuffer();
+                bool storageUnaligned = gpuAccessor.QueryHasUnalignedStorageBuffer();
 
                 if (storageUnaligned)
                 {
@@ -313,7 +326,7 @@ namespace Ryujinx.Graphics.Shader.Translation.Optimizations
                     Operand baseAddressMasked = Local();
                     Operand hostOffset = Local();
 
-                    int alignment = config.GpuAccessor.QueryHostStorageBufferOffsetAlignment();
+                    int alignment = gpuAccessor.QueryHostStorageBufferOffsetAlignment();
 
                     Operation maskOp = new Operation(Instruction.BitwiseAnd, baseAddressMasked, new[] { baseAddress, Const(-alignment) });
                     Operation subOp = new Operation(Instruction.Subtract, hostOffset, new[] { globalAddress, baseAddressMasked });
@@ -334,13 +347,19 @@ namespace Ryujinx.Graphics.Shader.Translation.Optimizations
                     offset = newOffset;
                 }
 
-                if (CanUseInlineStorageOp(operation, config.Options.TargetLanguage))
+                if (CanUseInlineStorageOp(operation, targetLanguage))
                 {
-                    return GenerateInlineStorageOp(config, node, operation, offset, result);
+                    return GenerateInlineStorageOp(resourceManager, node, operation, offset, result);
                 }
                 else
                 {
-                    if (!TryGenerateSingleTargetStorageOp(gtsContext, config, operation, result, out int functionId))
+                    if (!TryGenerateSingleTargetStorageOp(
+                        gtsContext,
+                        resourceManager,
+                        targetLanguage,
+                        operation,
+                        result,
+                        out int functionId))
                     {
                         return null;
                     }
@@ -355,7 +374,14 @@ namespace Ryujinx.Graphics.Shader.Translation.Optimizations
                 // the base address might be stored.
                 // Generate a helper function that will check all possible storage buffers and use the right one.
 
-                if (!TryGenerateMultiTargetStorageOp(gtsContext, config, block, operation, out int functionId))
+                if (!TryGenerateMultiTargetStorageOp(
+                    gtsContext,
+                    resourceManager,
+                    gpuAccessor,
+                    targetLanguage,
+                    block,
+                    operation,
+                    out int functionId))
                 {
                     return null;
                 }
@@ -376,14 +402,14 @@ namespace Ryujinx.Graphics.Shader.Translation.Optimizations
         }
 
         private static LinkedListNode<INode> GenerateInlineStorageOp(
-            ShaderConfig config,
+            ResourceManager resourceManager,
             LinkedListNode<INode> node,
             Operation operation,
             Operand offset,
             SearchResult result)
         {
             bool isStore = operation.Inst == Instruction.Store || operation.Inst.IsAtomic();
-            if (!config.ResourceManager.TryGetStorageBufferBinding(result.SbCbSlot, result.SbCbOffset, isStore, out int binding))
+            if (!resourceManager.TryGetStorageBufferBinding(result.SbCbSlot, result.SbCbOffset, isStore, out int binding))
             {
                 return null;
             }
@@ -475,7 +501,8 @@ namespace Ryujinx.Graphics.Shader.Translation.Optimizations
 
         private static bool TryGenerateSingleTargetStorageOp(
             GtsContext gtsContext,
-            ShaderConfig config,
+            ResourceManager resourceManager,
+            TargetLanguage targetLanguage,
             Operation operation,
             SearchResult result,
             out int functionId)
@@ -515,7 +542,8 @@ namespace Ryujinx.Graphics.Shader.Translation.Optimizations
             }
 
             if (!TryGenerateStorageOp(
-                config,
+                resourceManager,
+                targetLanguage,
                 context,
                 operation.Inst,
                 operation.StorageKind,
@@ -556,7 +584,9 @@ namespace Ryujinx.Graphics.Shader.Translation.Optimizations
 
         private static bool TryGenerateMultiTargetStorageOp(
             GtsContext gtsContext,
-            ShaderConfig config,
+            ResourceManager resourceManager,
+            IGpuAccessor gpuAccessor,
+            TargetLanguage targetLanguage,
             BasicBlock block,
             Operation operation,
             out int functionId)
@@ -625,7 +655,7 @@ namespace Ryujinx.Graphics.Shader.Translation.Optimizations
 
             if (targetCbs.Count == 0)
             {
-                config.GpuAccessor.Log($"Failed to find storage buffer for global memory operation \"{operation.Inst}\".");
+                gpuAccessor.Log($"Failed to find storage buffer for global memory operation \"{operation.Inst}\".");
             }
 
             if (gtsContext.TryGetFunctionId(operation, isMultiTarget: true, targetCbs, out functionId))
@@ -686,13 +716,14 @@ namespace Ryujinx.Graphics.Shader.Translation.Optimizations
 
                 SearchResult result = new SearchResult(sbCbSlot, sbCbOffset);
 
-                int alignment = config.GpuAccessor.QueryHostStorageBufferOffsetAlignment();
+                int alignment = gpuAccessor.QueryHostStorageBufferOffsetAlignment();
 
                 Operand baseAddressMasked = context.BitwiseAnd(baseAddrLow, Const(-alignment));
                 Operand hostOffset = context.ISubtract(globalAddressLow, baseAddressMasked);
 
                 if (!TryGenerateStorageOp(
-                    config,
+                    resourceManager,
+                    targetLanguage,
                     context,
                     operation.Inst,
                     operation.StorageKind,
@@ -782,7 +813,8 @@ namespace Ryujinx.Graphics.Shader.Translation.Optimizations
         }
 
         private static bool TryGenerateStorageOp(
-            ShaderConfig config,
+            ResourceManager resourceManager,
+            TargetLanguage targetLanguage,
             EmitterContext context,
             Instruction inst,
             StorageKind storageKind,
@@ -795,7 +827,7 @@ namespace Ryujinx.Graphics.Shader.Translation.Optimizations
             resultValue = null;
             bool isStore = inst.IsAtomic() || inst == Instruction.Store;
 
-            if (!config.ResourceManager.TryGetStorageBufferBinding(result.SbCbSlot, result.SbCbOffset, isStore, out int binding))
+            if (!resourceManager.TryGetStorageBufferBinding(result.SbCbSlot, result.SbCbOffset, isStore, out int binding))
             {
                 return false;
             }
@@ -821,7 +853,7 @@ namespace Ryujinx.Graphics.Shader.Translation.Optimizations
                         resultValue = context.AtomicCompareAndSwap(StorageKind.StorageBuffer, binding, Const(0), wordOffset, compare, value);
                         break;
                     case Instruction.AtomicMaxS32:
-                        if (config.Options.TargetLanguage == TargetLanguage.Spirv)
+                        if (targetLanguage == TargetLanguage.Spirv)
                         {
                             resultValue = context.AtomicMaxS32(StorageKind.StorageBuffer, binding, Const(0), wordOffset, value);
                         }
@@ -837,7 +869,7 @@ namespace Ryujinx.Graphics.Shader.Translation.Optimizations
                         resultValue = context.AtomicMaxU32(StorageKind.StorageBuffer, binding, Const(0), wordOffset, value);
                         break;
                     case Instruction.AtomicMinS32:
-                        if (config.Options.TargetLanguage == TargetLanguage.Spirv)
+                        if (targetLanguage == TargetLanguage.Spirv)
                         {
                             resultValue = context.AtomicMinS32(StorageKind.StorageBuffer, binding, Const(0), wordOffset, value);
                         }
