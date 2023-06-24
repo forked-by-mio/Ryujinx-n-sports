@@ -216,9 +216,15 @@ namespace Ryujinx.Graphics.Shader.Translation
             UsedFeatures |= flags;
         }
 
-        public ShaderProgram Translate()
+        public ShaderProgram Translate(bool asCompute = false)
         {
-            ResourceManager resourceManager = CreateResourceManager();
+            if (asCompute)
+            {
+                // TODO: Stop doing this here and pass used features to the emitter context.
+                UsedFeatures |= FeatureFlags.VtgAsCompute;
+            }
+
+            ResourceManager resourceManager = CreateResourceManager(asCompute);
 
             bool usesLocalMemory = _program.UsedFeatures.HasFlag(FeatureFlags.LocalMemory);
 
@@ -236,17 +242,23 @@ namespace Ryujinx.Graphics.Shader.Translation
             return Translator.Translate(
                 code,
                 AttributeUsage,
-                Definitions,
+                GetDefinitions(asCompute),
                 resourceManager,
                 GpuAccessor,
                 Options,
-                UsedFeatures,
+                GetUsedFeatures(asCompute),
                 ClipDistancesWritten);
         }
 
-        public ShaderProgram Translate(TranslatorContext other)
+        public ShaderProgram Translate(TranslatorContext other, bool asCompute = false)
         {
-            ResourceManager resourceManager = CreateResourceManager();
+            if (asCompute)
+            {
+                // TODO: Stop doing this here and pass used features to the emitter context.
+                UsedFeatures |= FeatureFlags.VtgAsCompute;
+            }
+
+            ResourceManager resourceManager = CreateResourceManager(asCompute);
 
             bool usesLocalMemory = _program.UsedFeatures.HasFlag(FeatureFlags.LocalMemory);
             resourceManager.SetCurrentLocalMemory(_localMemorySize, usesLocalMemory);
@@ -267,19 +279,26 @@ namespace Ryujinx.Graphics.Shader.Translation
             return Translator.Translate(
                 code,
                 AttributeUsage,
-                Definitions,
+                GetDefinitions(asCompute),
                 resourceManager,
                 GpuAccessor,
                 Options,
-                UsedFeatures,
+                GetUsedFeatures(asCompute),
                 ClipDistancesWritten);
         }
 
-        private ResourceManager CreateResourceManager()
+        private ResourceManager CreateResourceManager(bool vertexAsCompute)
         {
-            ResourceManager resourceManager = new ResourceManager(Definitions.Stage, GpuAccessor);
+            bool isTransformFeedbackEmulated = !GpuAccessor.QueryHostSupportsTransformFeedback() && GpuAccessor.QueryTransformFeedbackEnabled();
 
-            if (!GpuAccessor.QueryHostSupportsTransformFeedback() && GpuAccessor.QueryTransformFeedbackEnabled())
+            ResourceManager resourceManager = new ResourceManager(
+                Definitions.Stage,
+                GpuAccessor,
+                isTransformFeedbackEmulated,
+                vertexAsCompute,
+                _program.AttributeUsage.UsedOutputAttributes);
+
+            if (isTransformFeedbackEmulated)
             {
                 StructureType tfeInfoStruct = new StructureType(new StructureField[]
                 {
@@ -287,24 +306,149 @@ namespace Ryujinx.Graphics.Shader.Translation
                     new StructureField(AggregateType.U32, "vertex_count")
                 });
 
-                BufferDefinition tfeInfoBuffer = new BufferDefinition(BufferLayout.Std430, 1, Constants.TfeInfoBinding, "tfe_info", tfeInfoStruct);
+                int tfeInfoSbBinding = resourceManager.Reservations.GetTfeInfoStorageBufferBinding();
 
-                resourceManager.Properties.AddOrUpdateStorageBuffer(Constants.TfeInfoBinding, tfeInfoBuffer);
+                BufferDefinition tfeInfoBuffer = new BufferDefinition(BufferLayout.Std430, 1, tfeInfoSbBinding, "tfe_info", tfeInfoStruct);
+
+                resourceManager.Properties.AddOrUpdateStorageBuffer(tfeInfoSbBinding, tfeInfoBuffer);
 
                 StructureType tfeDataStruct = new StructureType(new StructureField[]
                 {
                     new StructureField(AggregateType.Array | AggregateType.U32, "data", 0)
                 });
 
-                for (int i = 0; i < Constants.TfeBuffersCount; i++)
+                for (int i = 0; i < ResourceReservations.TfeBuffersCount; i++)
                 {
-                    int binding = Constants.TfeBufferBaseBinding + i;
+                    int binding = resourceManager.Reservations.GetTfeBufferStorageBufferBinding(i);
                     BufferDefinition tfeDataBuffer = new BufferDefinition(BufferLayout.Std430, 1, binding, $"tfe_data{i}", tfeDataStruct);
                     resourceManager.Properties.AddOrUpdateStorageBuffer(binding, tfeDataBuffer);
                 }
             }
 
+            if (vertexAsCompute)
+            {
+                StructureType vertexInfoStruct = new StructureType(new StructureField[]
+                {
+                    new StructureField(AggregateType.Vector4 | AggregateType.U32, "counts"),
+                    new StructureField(AggregateType.Array | AggregateType.U32, "vertex_strides", ResourceReservations.MaxVertexBufferTextures)
+                });
+
+                int vertexInfoCbBinding = resourceManager.Reservations.GetVertexInfoConstantBufferBinding();
+
+                BufferDefinition vertexInfoBuffer = new BufferDefinition(BufferLayout.Std140, 0, vertexInfoCbBinding, "vb_info", vertexInfoStruct);
+
+                resourceManager.Properties.AddOrUpdateConstantBuffer(vertexInfoCbBinding, vertexInfoBuffer);
+
+                StructureType vertexOutputStruct = new StructureType(new StructureField[]
+                {
+                    new StructureField(AggregateType.Array | AggregateType.FP32, "data", 0)
+                });
+
+                int vertexOutputSbBinding = resourceManager.Reservations.GetVertexOutputStorageBufferBinding();
+
+                BufferDefinition vertexOutputBuffer = new BufferDefinition(BufferLayout.Std430, 1, vertexOutputSbBinding, "vertex_output", vertexOutputStruct);
+
+                resourceManager.Properties.AddOrUpdateStorageBuffer(vertexOutputSbBinding, vertexOutputBuffer);
+
+                int inputMap = _program.AttributeUsage.UsedInputAttributes;
+
+                while (inputMap != 0)
+                {
+                    int location = BitOperations.TrailingZeroCount(inputMap);
+                    int binding = location;
+                    TextureDefinition vaBuffer = new TextureDefinition(2, binding, $"vb_data{location}", SamplerType.TextureBuffer, TextureFormat.Unknown, TextureUsageFlags.None);
+                    resourceManager.Properties.AddOrUpdateTexture(binding, vaBuffer);
+
+                    inputMap &= ~(1 << location);
+                }
+
+                resourceManager.SetVertexAsComputeLocalMemories();
+            }
+
             return resourceManager;
+        }
+
+        private ShaderDefinitions GetDefinitions(bool vertexAsCompute)
+        {
+            if (vertexAsCompute)
+            {
+                return new ShaderDefinitions(ShaderStage.Compute, 32, 32, 1);
+            }
+            else
+            {
+                return Definitions;
+            }
+        }
+
+        private FeatureFlags GetUsedFeatures(bool vertexAsCompute)
+        {
+            if (vertexAsCompute)
+            {
+                return UsedFeatures | FeatureFlags.VtgAsCompute;
+            }
+            else
+            {
+                return UsedFeatures;
+            }
+        }
+
+        public ShaderProgram GenerateVertexPassthroughForCompute()
+        {
+            var attributeUsage = new AttributeUsage(GpuAccessor);
+            var resourceManager = new ResourceManager(ShaderStage.Geometry, GpuAccessor);
+
+            var vbInputStruct = new StructureType(new StructureField[]
+            {
+                new StructureField(AggregateType.Array | AggregateType.FP32, "data", 0)
+            });
+
+            resourceManager.Properties.AddOrUpdateStorageBuffer(0, new BufferDefinition(BufferLayout.Std430, 1, 0, "vb_input", vbInputStruct));
+
+            bool isTransformFeedbackEmulated = !GpuAccessor.QueryHostSupportsTransformFeedback() && GpuAccessor.QueryTransformFeedbackEnabled();
+
+            var reservationsForVertexAsCompute = new ResourceReservations(
+                isTransformFeedbackEmulated,
+                vertexAsCompute: true,
+                _program.AttributeUsage.UsedOutputAttributes);
+
+            var context = new EmitterContext();
+
+            Operand vertexIndex = Options.TargetApi == TargetApi.OpenGL
+                ? context.Load(StorageKind.Input, IoVariable.VertexId)
+                : context.Load(StorageKind.Input, IoVariable.VertexIndex);
+            Operand baseOffset = context.IMultiply(vertexIndex, Const(reservationsForVertexAsCompute.OutputSizePerInvocation));
+
+            foreach ((IoDefinition ioDefinition, int inputOffset) in reservationsForVertexAsCompute.OutputOffsets)
+            {
+                Operand vertexOffset = inputOffset != 0 ? context.IAdd(baseOffset, Const(inputOffset)) : baseOffset;
+                Operand value = context.Load(StorageKind.StorageBuffer, 0, Const(0), vertexOffset);
+
+                if (ioDefinition.IoVariable == IoVariable.UserDefined)
+                {
+                    context.Store(StorageKind.Output, ioDefinition.IoVariable, null, Const(ioDefinition.Location), Const(ioDefinition.Component), value);
+                    attributeUsage.SetOutputUserAttribute(ioDefinition.Location);
+                }
+                else
+                {
+                    context.Store(StorageKind.Output, ioDefinition.IoVariable, null, Const(ioDefinition.Component), value);
+                }
+            }
+
+            var operations = context.GetOperations();
+            var cfg = ControlFlowGraph.Create(operations);
+            var function = new Function(cfg.Blocks, "main", false, 0, 0);
+
+            var definitions = new ShaderDefinitions(ShaderStage.Vertex);
+
+            return Translator.Generate(
+                new[] { function },
+                attributeUsage,
+                definitions,
+                resourceManager,
+                GpuAccessor,
+                FeatureFlags.None,
+                0,
+                Options);
         }
 
         public ShaderProgram GenerateGeometryPassthrough()

@@ -42,6 +42,7 @@ namespace Ryujinx.Graphics.Shader.Translation.Transforms
             RunPass<TexturePass>(context);
             RunPass<SharedStoreSmallIntCas>(context);
             RunPass<SharedAtomicSignedCas>(context);
+            RunPass<VertexToCompute>(context);
         }
 
         private static void RunPass<T>(Context context) where T : ITransformPass

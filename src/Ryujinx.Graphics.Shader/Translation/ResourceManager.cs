@@ -20,7 +20,6 @@ namespace Ryujinx.Graphics.Shader.Translation
         private static readonly string[] _stagePrefixes = new string[] { "cp", "vp", "tcp", "tep", "gp", "fp" };
 
         private readonly IGpuAccessor _gpuAccessor;
-        private readonly ShaderProperties _properties;
         private readonly ShaderStage _stage;
         private readonly string _stagePrefix;
 
@@ -49,12 +48,22 @@ namespace Ryujinx.Graphics.Shader.Translation
         public int LocalMemoryId { get; private set; }
         public int SharedMemoryId { get; private set; }
 
-        public ShaderProperties Properties => _properties;
+        public int LocalVertexDataMemoryId { get; private set; }
 
-        public ResourceManager(ShaderStage stage, IGpuAccessor gpuAccessor)
+        public ShaderProperties Properties { get; }
+
+        public ResourceReservations Reservations { get; }
+
+        public ResourceManager(
+            ShaderStage stage,
+            IGpuAccessor gpuAccessor,
+            bool isTransformFeedbackEmulated = false,
+            bool vertexAsCompute = false,
+            int vacOutputMap = 0)
         {
             _gpuAccessor = gpuAccessor;
-            _properties = new ShaderProperties();
+            Properties = new ShaderProperties();
+            Reservations = new ResourceReservations(isTransformFeedbackEmulated, vertexAsCompute, vacOutputMap);
             _stage = stage;
             _stagePrefix = GetShaderStagePrefix(stage);
 
@@ -71,10 +80,12 @@ namespace Ryujinx.Graphics.Shader.Translation
             _usedTextures = new Dictionary<TextureInfo, TextureMeta>();
             _usedImages = new Dictionary<TextureInfo, TextureMeta>();
 
-            _properties.AddOrUpdateConstantBuffer(0, new BufferDefinition(BufferLayout.Std140, 0, 0, "support_buffer", SupportBuffer.GetStructureType()));
+            Properties.AddOrUpdateConstantBuffer(0, new BufferDefinition(BufferLayout.Std140, 0, 0, "support_buffer", SupportBuffer.GetStructureType()));
 
             LocalMemoryId = -1;
             SharedMemoryId = -1;
+
+            LocalVertexDataMemoryId = -1;
         }
 
         public void SetCurrentLocalMemory(int size, bool isUsed)
@@ -112,6 +123,16 @@ namespace Ryujinx.Graphics.Shader.Translation
             else
             {
                 SharedMemoryId = -1;
+            }
+        }
+
+        public void SetVertexAsComputeLocalMemories()
+        {
+            if (LocalVertexDataMemoryId < 0)
+            {
+                var lmem = new MemoryDefinition("local_vertex_data", AggregateType.Array | AggregateType.FP32, Reservations.OutputSizePerInvocation);
+
+                LocalVertexDataMemoryId = Properties.AddLocalMemory(lmem);
             }
         }
 
@@ -501,7 +522,7 @@ namespace Ryujinx.Graphics.Shader.Translation
                 new StructureField(AggregateType.Array | AggregateType.Vector4 | AggregateType.FP32, "data", Constants.ConstantBufferSize / 16)
             });
 
-            _properties.AddOrUpdateConstantBuffer(binding, new BufferDefinition(BufferLayout.Std140, 0, binding, name, type));
+            Properties.AddOrUpdateConstantBuffer(binding, new BufferDefinition(BufferLayout.Std140, 0, binding, name, type));
         }
 
         private void AddNewStorageBuffer(int binding, string name)
@@ -511,7 +532,7 @@ namespace Ryujinx.Graphics.Shader.Translation
                 new StructureField(AggregateType.Array | AggregateType.U32, "data", 0)
             });
 
-            _properties.AddOrUpdateStorageBuffer(binding, new BufferDefinition(BufferLayout.Std430, 1, binding, name, type));
+            Properties.AddOrUpdateStorageBuffer(binding, new BufferDefinition(BufferLayout.Std430, 1, binding, name, type));
         }
 
         public static string GetShaderStagePrefix(ShaderStage stage)
