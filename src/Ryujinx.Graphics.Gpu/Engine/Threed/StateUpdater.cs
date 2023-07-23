@@ -1402,6 +1402,12 @@ namespace Ryujinx.Graphics.Gpu.Engine.Threed
                 _currentProgramInfo[stageIndex] = info;
             }
 
+            if (gs.VertexAsCompute != null)
+            {
+                _drawState.VertexAsCompute = gs.VertexAsCompute;
+                _drawState.VertexPassthrough = gs.HostProgram;
+            }
+
             _context.Renderer.Pipeline.SetProgram(gs.HostProgram);
         }
 

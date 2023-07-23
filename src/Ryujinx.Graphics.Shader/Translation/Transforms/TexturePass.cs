@@ -166,14 +166,12 @@ namespace Ryujinx.Graphics.Shader.Translation.Transforms
 
             bool isBindless = (texOp.Flags & TextureFlags.Bindless) != 0;
 
-            if (isBindless)
+            if (isBindless || !resourceManager.TryGetCbufSlotAndHandleForTexture(texOp.Binding, out int cbufSlot, out int handle))
             {
                 return node;
             }
 
             bool intCoords = (texOp.Flags & TextureFlags.IntCoords) != 0;
-
-            (int cbufSlot, int handle) = resourceManager.GetCbufSlotAndHandleForTexture(texOp.Binding);
 
             bool isCoordNormalized = gpuAccessor.QueryTextureCoordNormalized(handle, cbufSlot);
 
@@ -640,12 +638,10 @@ namespace Ryujinx.Graphics.Shader.Translation.Transforms
 
             // We can't query the format of a bindless texture,
             // because the handle is unknown, it can have any format.
-            if (texOp.Flags.HasFlag(TextureFlags.Bindless))
+            if (texOp.Flags.HasFlag(TextureFlags.Bindless) || !resourceManager.TryGetCbufSlotAndHandleForTexture(texOp.Binding, out int cbufSlot, out int handle))
             {
                 return node;
             }
-
-            (int cbufSlot, int handle) = resourceManager.GetCbufSlotAndHandleForTexture(texOp.Binding);
 
             TextureFormat format = gpuAccessor.QueryTextureFormat(handle, cbufSlot);
 
