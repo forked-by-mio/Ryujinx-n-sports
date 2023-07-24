@@ -378,7 +378,7 @@ namespace Ryujinx.Graphics.Shader.Translation
         {
             if (vertexAsCompute)
             {
-                return new ShaderDefinitions(ShaderStage.Compute, 32, 32, 1);
+                return Definitions.AsCompute(32, 32, 1);
             }
             else
             {

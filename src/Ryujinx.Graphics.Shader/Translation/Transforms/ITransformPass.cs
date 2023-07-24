@@ -9,6 +9,7 @@ namespace Ryujinx.Graphics.Shader.Translation.Transforms
         abstract static LinkedListNode<INode> RunPass(
             HelperFunctionManager hfm,
             LinkedListNode<INode> node,
+            ShaderDefinitions definitions,
             ResourceManager resourceManager,
             IGpuAccessor gpuAccessor,
             ShaderStage stage,

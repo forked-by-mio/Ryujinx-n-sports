@@ -9,6 +9,7 @@ namespace Ryujinx.Graphics.Shader.Translation.Transforms
         {
             public HelperFunctionManager Hfm;
             public BasicBlock[] Blocks;
+            public ShaderDefinitions Definitions;
             public ResourceManager ResourceManager;
             public IGpuAccessor GpuAccessor;
             public TargetLanguage TargetLanguage;
@@ -19,6 +20,7 @@ namespace Ryujinx.Graphics.Shader.Translation.Transforms
         public static void RunPass(
             HelperFunctionManager hfm,
             BasicBlock[] blocks,
+            ShaderDefinitions definitions,
             ResourceManager resourceManager,
             IGpuAccessor gpuAccessor,
             TargetLanguage targetLanguage,
@@ -29,6 +31,7 @@ namespace Ryujinx.Graphics.Shader.Translation.Transforms
             {
                 Hfm = hfm,
                 Blocks = blocks,
+                Definitions = definitions,
                 ResourceManager = resourceManager,
                 GpuAccessor = gpuAccessor,
                 TargetLanguage = targetLanguage,
@@ -53,6 +56,7 @@ namespace Ryujinx.Graphics.Shader.Translation.Transforms
             }
 
             HelperFunctionManager hfm = context.Hfm;
+            ShaderDefinitions definitions = context.Definitions;
             ResourceManager resourceManager = context.ResourceManager;
             IGpuAccessor gpuAccessor = context.GpuAccessor;
             ShaderStage stage = context.Stage;
@@ -69,7 +73,7 @@ namespace Ryujinx.Graphics.Shader.Translation.Transforms
                         continue;
                     }
 
-                    node = T.RunPass(hfm, node, resourceManager, gpuAccessor, stage, ref usedFeatures);
+                    node = T.RunPass(hfm, node, definitions, resourceManager, gpuAccessor, stage, ref usedFeatures);
                 }
             }
         }

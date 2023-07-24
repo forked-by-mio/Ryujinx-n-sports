@@ -80,7 +80,7 @@ namespace Ryujinx.Graphics.Shader.Translation
 
         private readonly Dictionary<TransformFeedbackVariable, TransformFeedbackOutput> _transformFeedbackDefinitions;
 
-        private readonly AttributeType[] _attributeTypes;
+        private AttributeType[] _attributeTypes;
         private readonly AttributeType[] _fragmentOutputTypes;
 
         public ShaderDefinitions(ShaderStage stage)
@@ -312,6 +312,29 @@ namespace Ryujinx.Graphics.Shader.Translation
             }
 
             return type;
+        }
+
+        public bool IsAttributeSint(int location)
+        {
+            return (_attributeTypes[location] & ~(AttributeType.Packed | AttributeType.PackedRgb10A2Signed)) == AttributeType.Sint;
+        }
+
+        public bool IsAttributePacked(int location)
+        {
+            return _attributeTypes[location].HasFlag(AttributeType.Packed);
+        }
+
+        public bool IsAttributePackedRgb10A2Signed(int location)
+        {
+            return _attributeTypes[location].HasFlag(AttributeType.PackedRgb10A2Signed);
+        }
+
+        public ShaderDefinitions AsCompute(int computeLocalSizeX, int computeLocalSizeY, int computeLocalSizeZ)
+        {
+            ShaderDefinitions definitions = new ShaderDefinitions(ShaderStage.Compute, computeLocalSizeX, computeLocalSizeY, computeLocalSizeZ);
+            definitions._attributeTypes = _attributeTypes;
+
+            return definitions;
         }
     }
 }

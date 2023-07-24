@@ -89,7 +89,7 @@ namespace Ryujinx.Graphics.Shader.Translation
                     Ssa.Rename(cfg.Blocks);
 
                     Optimizer.RunPass(hfm, cfg.Blocks, resourceManager, gpuAccessor, options.TargetLanguage, definitions.Stage);
-                    TransformPasses.RunPass(hfm, cfg.Blocks, resourceManager, gpuAccessor, options.TargetLanguage, definitions.Stage, ref usedFeatures);
+                    TransformPasses.RunPass(hfm, cfg.Blocks, definitions, resourceManager, gpuAccessor, options.TargetLanguage, definitions.Stage, ref usedFeatures);
                 }
 
                 funcs[i] = new Function(cfg.Blocks, $"fun{i}", false, inArgumentsCount, outArgumentsCount);
