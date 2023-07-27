@@ -9,6 +9,9 @@ namespace Ryujinx.Graphics.Shader.Translation
     {
         public ShaderStage Stage { get; }
 
+        public bool StageAsCompute { get; private set; }
+        public ShaderStage OriginalStage  { get; private set; }
+
         public int ComputeLocalSizeX { get; }
         public int ComputeLocalSizeY { get; }
         public int ComputeLocalSizeZ { get; }
@@ -23,9 +26,9 @@ namespace Ryujinx.Graphics.Shader.Translation
         public int ThreadsPerInputPrimitive { get; }
 
         public InputTopology InputTopology { get; }
-        public OutputTopology OutputTopology { get; }
+        public OutputTopology OutputTopology { get; private set; }
 
-        public int MaxOutputVertices { get; }
+        public int MaxOutputVertices { get; private set; }
 
         public bool DualSourceBlend { get; }
         public bool EarlyZForce { get; }
@@ -316,23 +319,52 @@ namespace Ryujinx.Graphics.Shader.Translation
 
         public bool IsAttributeSint(int location)
         {
+            if (_attributeTypes == null)
+            {
+                return false;
+            }
+
             return (_attributeTypes[location] & ~(AttributeType.Packed | AttributeType.PackedRgb10A2Signed)) == AttributeType.Sint;
         }
 
         public bool IsAttributePacked(int location)
         {
+            if (_attributeTypes == null)
+            {
+                return false;
+            }
+
             return _attributeTypes[location].HasFlag(AttributeType.Packed);
         }
 
         public bool IsAttributePackedRgb10A2Signed(int location)
         {
+            if (_attributeTypes == null)
+            {
+                return false;
+            }
+
             return _attributeTypes[location].HasFlag(AttributeType.PackedRgb10A2Signed);
+        }
+
+        public int GetGeometryOutputIndexBufferStride()
+        {
+            return MaxOutputVertices + OutputTopology switch
+            {
+                OutputTopology.LineStrip => MaxOutputVertices / 2,
+                OutputTopology.TriangleStrip => MaxOutputVertices / 3,
+                _ => MaxOutputVertices,
+            };
         }
 
         public ShaderDefinitions AsCompute(int computeLocalSizeX, int computeLocalSizeY, int computeLocalSizeZ)
         {
             ShaderDefinitions definitions = new ShaderDefinitions(ShaderStage.Compute, computeLocalSizeX, computeLocalSizeY, computeLocalSizeZ);
             definitions._attributeTypes = _attributeTypes;
+            definitions.StageAsCompute = true;
+            definitions.OriginalStage = Stage;
+            definitions.OutputTopology = OutputTopology;
+            definitions.MaxOutputVertices = MaxOutputVertices;
 
             return definitions;
         }

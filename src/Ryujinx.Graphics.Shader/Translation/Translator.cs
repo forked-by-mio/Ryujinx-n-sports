@@ -129,6 +129,13 @@ namespace Ryujinx.Graphics.Shader.Translation
                 resourceManager,
                 options.Flags.HasFlag(TranslationFlags.DebugMode));
 
+            int geometryVerticesPerPrimitive = definitions.OutputTopology switch
+            {
+                OutputTopology.LineStrip => 2,
+                OutputTopology.TriangleStrip => 3,
+                _ => 1
+            };
+
             var info = new ShaderProgramInfo(
                 resourceManager.GetConstantBufferDescriptors(),
                 resourceManager.GetStorageBufferDescriptors(),
@@ -137,6 +144,8 @@ namespace Ryujinx.Graphics.Shader.Translation
                 identification,
                 layerInputAttr,
                 definitions.Stage,
+                geometryVerticesPerPrimitive,
+                definitions.MaxOutputVertices,
                 usedFeatures.HasFlag(FeatureFlags.InstanceId),
                 usedFeatures.HasFlag(FeatureFlags.DrawParameters),
                 usedFeatures.HasFlag(FeatureFlags.RtLayer),

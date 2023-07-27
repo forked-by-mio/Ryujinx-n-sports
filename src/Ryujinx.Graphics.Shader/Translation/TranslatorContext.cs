@@ -14,6 +14,7 @@ namespace Ryujinx.Graphics.Shader.Translation
     {
         private readonly DecodedProgram _program;
         private readonly int _localMemorySize;
+        private int _vertexOutputMap;
 
         public ulong Address { get; }
         public int Size { get; }
@@ -52,6 +53,7 @@ namespace Ryujinx.Graphics.Shader.Translation
             Size = size;
             _program = program;
             _localMemorySize = localMemorySize;
+            _vertexOutputMap = -1;
             Definitions = definitions;
             GpuAccessor = gpuAccessor;
             Options = options;
@@ -296,6 +298,7 @@ namespace Ryujinx.Graphics.Shader.Translation
                 GpuAccessor,
                 isTransformFeedbackEmulated,
                 vertexAsCompute,
+                _vertexOutputMap,
                 _program.AttributeUsage.UsedOutputAttributes);
 
             if (isTransformFeedbackEmulated)
@@ -329,15 +332,14 @@ namespace Ryujinx.Graphics.Shader.Translation
             {
                 StructureType vertexInfoStruct = new StructureType(new StructureField[]
                 {
-                    new StructureField(AggregateType.Vector4 | AggregateType.U32, "counts"),
+                    new StructureField(AggregateType.Vector4 | AggregateType.U32, "vertex_counts"),
+                    new StructureField(AggregateType.Vector4 | AggregateType.U32, "geometry_counts"),
                     new StructureField(AggregateType.Array | AggregateType.Vector4 | AggregateType.U32, "vertex_strides", ResourceReservations.MaxVertexBufferTextures),
                     new StructureField(AggregateType.Array | AggregateType.U32, "vertex_divisors", ResourceReservations.MaxVertexBufferTextures),
                 });
 
                 int vertexInfoCbBinding = resourceManager.Reservations.GetVertexInfoConstantBufferBinding();
-
                 BufferDefinition vertexInfoBuffer = new BufferDefinition(BufferLayout.Std140, 0, vertexInfoCbBinding, "vb_info", vertexInfoStruct);
-
                 resourceManager.Properties.AddOrUpdateConstantBuffer(vertexInfoCbBinding, vertexInfoBuffer);
 
                 StructureType vertexOutputStruct = new StructureType(new StructureField[]
@@ -346,29 +348,48 @@ namespace Ryujinx.Graphics.Shader.Translation
                 });
 
                 int vertexOutputSbBinding = resourceManager.Reservations.GetVertexOutputStorageBufferBinding();
-
                 BufferDefinition vertexOutputBuffer = new BufferDefinition(BufferLayout.Std430, 1, vertexOutputSbBinding, "vertex_output", vertexOutputStruct);
-
                 resourceManager.Properties.AddOrUpdateStorageBuffer(vertexOutputSbBinding, vertexOutputBuffer);
 
-                int ibBinding = resourceManager.Reservations.GetIndexBufferTextureBinding();
-                TextureDefinition indexBuffer = new TextureDefinition(2, ibBinding, "ib_data", SamplerType.TextureBuffer, TextureFormat.Unknown, TextureUsageFlags.None);
-
-                resourceManager.Properties.AddOrUpdateTexture(ibBinding, indexBuffer);
-
-                int inputMap = _program.AttributeUsage.UsedInputAttributes;
-
-                while (inputMap != 0)
+                if (Stage == ShaderStage.Vertex)
                 {
-                    int location = BitOperations.TrailingZeroCount(inputMap);
-                    int binding = resourceManager.Reservations.GetVertexBufferTextureBinding(location);
-                    TextureDefinition vaBuffer = new TextureDefinition(2, binding, $"vb_data{location}", SamplerType.TextureBuffer, TextureFormat.Unknown, TextureUsageFlags.None);
-                    resourceManager.Properties.AddOrUpdateTexture(binding, vaBuffer);
+                    int ibBinding = resourceManager.Reservations.GetIndexBufferTextureBinding();
+                    TextureDefinition indexBuffer = new TextureDefinition(2, ibBinding, "ib_data", SamplerType.TextureBuffer, TextureFormat.Unknown, TextureUsageFlags.None);
+                    resourceManager.Properties.AddOrUpdateTexture(ibBinding, indexBuffer);
 
-                    inputMap &= ~(1 << location);
+                    int inputMap = _program.AttributeUsage.UsedInputAttributes;
+
+                    while (inputMap != 0)
+                    {
+                        int location = BitOperations.TrailingZeroCount(inputMap);
+                        int binding = resourceManager.Reservations.GetVertexBufferTextureBinding(location);
+                        TextureDefinition vaBuffer = new TextureDefinition(2, binding, $"vb_data{location}", SamplerType.TextureBuffer, TextureFormat.Unknown, TextureUsageFlags.None);
+                        resourceManager.Properties.AddOrUpdateTexture(binding, vaBuffer);
+
+                        inputMap &= ~(1 << location);
+                    }
+                }
+                else if (Stage == ShaderStage.Geometry)
+                {
+                    int trbBinding = resourceManager.Reservations.GetTopologyRemapBufferTextureBinding();
+                    TextureDefinition remapBuffer = new TextureDefinition(2, trbBinding, "trb_data", SamplerType.TextureBuffer, TextureFormat.Unknown, TextureUsageFlags.None);
+                    resourceManager.Properties.AddOrUpdateTexture(trbBinding, remapBuffer);
+
+                    int geometryVbOutputSbBinding = resourceManager.Reservations.GetGeometryVertexOutputStorageBufferBinding();
+                    BufferDefinition geometryVbOutputBuffer = new BufferDefinition(BufferLayout.Std430, 1, geometryVbOutputSbBinding, "geometry_vb_output", vertexOutputStruct);
+                    resourceManager.Properties.AddOrUpdateStorageBuffer(geometryVbOutputSbBinding, geometryVbOutputBuffer);
+
+                    StructureType geometryIbOutputStruct = new StructureType(new StructureField[]
+                    {
+                        new StructureField(AggregateType.Array | AggregateType.U32, "data", 0)
+                    });
+
+                    int geometryIbOutputSbBinding = resourceManager.Reservations.GetGeometryIndexOutputStorageBufferBinding();
+                    BufferDefinition geometryIbOutputBuffer = new BufferDefinition(BufferLayout.Std430, 1, geometryIbOutputSbBinding, "geometry_ib_output", geometryIbOutputStruct);
+                    resourceManager.Properties.AddOrUpdateStorageBuffer(geometryIbOutputSbBinding, geometryIbOutputBuffer);
                 }
 
-                resourceManager.SetVertexAsComputeLocalMemories();
+                resourceManager.SetVertexAsComputeLocalMemories(Definitions.Stage, Definitions.InputTopology);
             }
 
             return resourceManager;
@@ -405,20 +426,41 @@ namespace Ryujinx.Graphics.Shader.Translation
             return new ResourceReservations(
                 isTransformFeedbackEmulated,
                 vertexAsCompute: true,
+                _vertexOutputMap,
                 _program.AttributeUsage.UsedOutputAttributes);
+        }
+
+        public void SetVertexOutputMapForGeometryAsCompute(TranslatorContext vertexContext)
+        {
+            _vertexOutputMap = vertexContext._program.AttributeUsage.UsedOutputAttributes;
         }
 
         public ShaderProgram GenerateVertexPassthroughForCompute()
         {
-            var attributeUsage = new AttributeUsage(GpuAccessor);
-            var resourceManager = new ResourceManager(ShaderStage.Geometry, GpuAccessor);
+            const int VertexInfoCbBinding = 1;
+            const int VertexDataSbBinding = 0;
 
-            var vbInputStruct = new StructureType(new StructureField[]
+            var attributeUsage = new AttributeUsage(GpuAccessor);
+            var resourceManager = new ResourceManager(ShaderStage.Vertex, GpuAccessor);
+
+            if (Stage == ShaderStage.Vertex)
+            {
+                StructureType vertexInfoStruct = new StructureType(new StructureField[]
+                {
+                    new StructureField(AggregateType.Vector4 | AggregateType.U32, "vertex_counts"),
+                });
+
+                BufferDefinition vertexInfoBuffer = new BufferDefinition(BufferLayout.Std140, 0, VertexInfoCbBinding, "vb_info", vertexInfoStruct);
+                resourceManager.Properties.AddOrUpdateConstantBuffer(VertexInfoCbBinding, vertexInfoBuffer);
+            }
+
+            StructureType vertexInputStruct = new StructureType(new StructureField[]
             {
                 new StructureField(AggregateType.Array | AggregateType.FP32, "data", 0)
             });
 
-            resourceManager.Properties.AddOrUpdateStorageBuffer(0, new BufferDefinition(BufferLayout.Std430, 1, 0, "vb_input", vbInputStruct));
+            BufferDefinition vertexOutputBuffer = new BufferDefinition(BufferLayout.Std430, 1, VertexDataSbBinding, "vb_input", vertexInputStruct);
+            resourceManager.Properties.AddOrUpdateStorageBuffer(VertexDataSbBinding, vertexOutputBuffer);
 
             var reservationsForVertexAsCompute = GetResourceReservations();
 
@@ -427,12 +469,30 @@ namespace Ryujinx.Graphics.Shader.Translation
             Operand vertexIndex = Options.TargetApi == TargetApi.OpenGL
                 ? context.Load(StorageKind.Input, IoVariable.VertexId)
                 : context.Load(StorageKind.Input, IoVariable.VertexIndex);
+
+            if (Stage == ShaderStage.Vertex)
+            {
+                Operand vertexCount = context.Load(StorageKind.ConstantBuffer, VertexInfoCbBinding, Const(0), Const(0));
+
+                // Base instance will be always zero when this shader is used, so which one we use here doesn't really matter.
+                Operand instanceId = Options.TargetApi == TargetApi.OpenGL
+                    ? context.Load(StorageKind.Input, IoVariable.InstanceId)
+                    : context.Load(StorageKind.Input, IoVariable.InstanceIndex);
+
+                vertexIndex = context.IAdd(context.IMultiply(instanceId, vertexCount), vertexIndex);
+            }
+
             Operand baseOffset = context.IMultiply(vertexIndex, Const(reservationsForVertexAsCompute.OutputSizePerInvocation));
 
-            foreach ((IoDefinition ioDefinition, int inputOffset) in reservationsForVertexAsCompute.OutputOffsets)
+            foreach ((IoDefinition ioDefinition, int inputOffset) in reservationsForVertexAsCompute.Offsets)
             {
+                if (ioDefinition.StorageKind != StorageKind.Output)
+                {
+                    continue;
+                }
+
                 Operand vertexOffset = inputOffset != 0 ? context.IAdd(baseOffset, Const(inputOffset)) : baseOffset;
-                Operand value = context.Load(StorageKind.StorageBuffer, 0, Const(0), vertexOffset);
+                Operand value = context.Load(StorageKind.StorageBuffer, VertexDataSbBinding, Const(0), vertexOffset);
 
                 if (ioDefinition.IoVariable == IoVariable.UserDefined)
                 {

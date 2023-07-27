@@ -141,6 +141,16 @@ namespace Ryujinx.Graphics.Gpu.Shader.DiskCache
             public ShaderStage Stage;
 
             /// <summary>
+            /// Number of vertices that each output primitive has on a geometry shader.
+            /// </summary>
+            public byte GeometryVerticesPerPrimitive;
+
+            /// <summary>
+            /// Maximum number of vertices that a geometry shader may generate.
+            /// </summary>
+            public ushort GeometryMaxOutputVertices;
+
+            /// <summary>
             /// Indicates if the shader accesses the Instance ID built-in variable.
             /// </summary>
             public bool UsesInstanceId;
@@ -778,6 +788,8 @@ namespace Ryujinx.Graphics.Gpu.Shader.DiskCache
                 ShaderIdentification.None,
                 0,
                 dataInfo.Stage,
+                dataInfo.GeometryVerticesPerPrimitive,
+                dataInfo.GeometryMaxOutputVertices,
                 dataInfo.UsesInstanceId,
                 dataInfo.UsesDrawParameters,
                 dataInfo.UsesRtLayer,
@@ -804,6 +816,8 @@ namespace Ryujinx.Graphics.Gpu.Shader.DiskCache
             dataInfo.TexturesCount = (ushort)info.Textures.Count;
             dataInfo.ImagesCount = (ushort)info.Images.Count;
             dataInfo.Stage = info.Stage;
+            dataInfo.GeometryVerticesPerPrimitive = (byte)info.GeometryVerticesPerPrimitive;
+            dataInfo.GeometryMaxOutputVertices = (ushort)info.GeometryMaxOutputVertices;
             dataInfo.UsesInstanceId = info.UsesInstanceId;
             dataInfo.UsesDrawParameters = info.UsesDrawParameters;
             dataInfo.UsesRtLayer = info.UsesRtLayer;

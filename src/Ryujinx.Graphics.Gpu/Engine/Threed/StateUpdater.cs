@@ -1405,6 +1405,7 @@ namespace Ryujinx.Graphics.Gpu.Engine.Threed
             if (gs.VertexAsCompute != null)
             {
                 _drawState.VertexAsCompute = gs.VertexAsCompute;
+                _drawState.GeometryAsCompute = gs.GeometryAsCompute;
                 _drawState.VertexPassthrough = gs.HostProgram;
             }
 
