@@ -33,8 +33,6 @@ namespace Ryujinx.Graphics.Shader.Translation
 
         internal TranslationOptions Options { get; }
 
-        internal byte ClipDistancesWritten { get; private set; }
-
         internal FeatureFlags UsedFeatures { get; private set; }
 
         public bool LayerOutputWritten { get; private set; }
@@ -57,8 +55,7 @@ namespace Ryujinx.Graphics.Shader.Translation
             Definitions = definitions;
             GpuAccessor = gpuAccessor;
             Options = options;
-
-            SetUsedFeature(program.UsedFeatures);
+            UsedFeatures = program.UsedFeatures;
         }
 
         private static bool IsLoadUserDefined(Operation operation)
@@ -167,7 +164,6 @@ namespace Ryujinx.Graphics.Shader.Translation
 
         private void InheritFrom(TranslatorContext other)
         {
-            ClipDistancesWritten |= other.ClipDistancesWritten;
             UsedFeatures |= other.UsedFeatures;
 
             AttributeUsage.InheritFrom(other.AttributeUsage);
@@ -181,6 +177,7 @@ namespace Ryujinx.Graphics.Shader.Translation
 
         public void SetGeometryShaderLayerInputAttribute(int attr)
         {
+            UsedFeatures |= FeatureFlags.RtLayer;
             HasLayerInputAttribute = true;
             GpLayerInputAttribute = attr;
         }
@@ -206,16 +203,6 @@ namespace Ryujinx.Graphics.Shader.Translation
         public void MergeOutputUserAttributes(int mask, IEnumerable<int> perPatch)
         {
             AttributeUsage.MergeOutputUserAttributes(Definitions.GpPassthrough, mask, perPatch);
-        }
-
-        public void SetClipDistanceWritten(int index)
-        {
-            ClipDistancesWritten |= (byte)(1 << index);
-        }
-
-        public void SetUsedFeature(FeatureFlags flags)
-        {
-            UsedFeatures |= flags;
         }
 
         public ShaderProgram Translate(bool asCompute = false)
@@ -249,7 +236,7 @@ namespace Ryujinx.Graphics.Shader.Translation
                 GpuAccessor,
                 Options,
                 GetUsedFeatures(asCompute),
-                ClipDistancesWritten);
+                _program.ClipDistancesWritten);
         }
 
         public ShaderProgram Translate(TranslatorContext other, bool asCompute = false)
@@ -286,7 +273,7 @@ namespace Ryujinx.Graphics.Shader.Translation
                 GpuAccessor,
                 Options,
                 GetUsedFeatures(asCompute),
-                ClipDistancesWritten);
+                (byte)(_program.ClipDistancesWritten | other._program.ClipDistancesWritten));
         }
 
         private ResourceManager CreateResourceManager(bool vertexAsCompute)

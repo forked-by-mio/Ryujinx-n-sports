@@ -306,8 +306,6 @@ namespace Ryujinx.Graphics.Shader.Instructions
             bool byteAddress,
             bool isBindless)
         {
-            context.TranslatorContext.SetUsedFeature(FeatureFlags.IntegerSampling);
-
             SamplerType type = ConvertSamplerType(dimensions);
 
             if (type == SamplerType.None)
