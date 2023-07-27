@@ -151,6 +151,11 @@ namespace Ryujinx.Graphics.Gpu.Shader.DiskCache
             public ushort GeometryMaxOutputVertices;
 
             /// <summary>
+            /// Number of invocations per primitive on tessellation or geometry shaders.
+            /// </summary>
+            public ushort ThreadsPerInputPrimitive;
+
+            /// <summary>
             /// Indicates if the shader accesses the Instance ID built-in variable.
             /// </summary>
             public bool UsesInstanceId;
@@ -790,6 +795,7 @@ namespace Ryujinx.Graphics.Gpu.Shader.DiskCache
                 dataInfo.Stage,
                 dataInfo.GeometryVerticesPerPrimitive,
                 dataInfo.GeometryMaxOutputVertices,
+                dataInfo.ThreadsPerInputPrimitive,
                 dataInfo.UsesInstanceId,
                 dataInfo.UsesDrawParameters,
                 dataInfo.UsesRtLayer,
@@ -818,6 +824,7 @@ namespace Ryujinx.Graphics.Gpu.Shader.DiskCache
             dataInfo.Stage = info.Stage;
             dataInfo.GeometryVerticesPerPrimitive = (byte)info.GeometryVerticesPerPrimitive;
             dataInfo.GeometryMaxOutputVertices = (ushort)info.GeometryMaxOutputVertices;
+            dataInfo.ThreadsPerInputPrimitive = (ushort)info.ThreadsPerInputPrimitive;
             dataInfo.UsesInstanceId = info.UsesInstanceId;
             dataInfo.UsesDrawParameters = info.UsesDrawParameters;
             dataInfo.UsesRtLayer = info.UsesRtLayer;

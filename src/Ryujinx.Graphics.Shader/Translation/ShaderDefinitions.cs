@@ -23,7 +23,7 @@ namespace Ryujinx.Graphics.Shader.Translation
         public bool GpPassthrough { get; }
         public bool LastInVertexPipeline { get; set; }
 
-        public int ThreadsPerInputPrimitive { get; }
+        public int ThreadsPerInputPrimitive { get; private set; }
 
         public InputTopology InputTopology { get; }
         public OutputTopology OutputTopology { get; private set; }
@@ -347,7 +347,7 @@ namespace Ryujinx.Graphics.Shader.Translation
             return _attributeTypes[location].HasFlag(AttributeType.PackedRgb10A2Signed);
         }
 
-        public int GetGeometryOutputIndexBufferStride()
+        public int GetGeometryOutputIndexBufferStridePerInstance()
         {
             return MaxOutputVertices + OutputTopology switch
             {
@@ -355,6 +355,11 @@ namespace Ryujinx.Graphics.Shader.Translation
                 OutputTopology.TriangleStrip => MaxOutputVertices / 3,
                 _ => MaxOutputVertices,
             };
+        }
+
+        public int GetGeometryOutputIndexBufferStride()
+        {
+            return GetGeometryOutputIndexBufferStridePerInstance() * ThreadsPerInputPrimitive;
         }
 
         public ShaderDefinitions AsCompute(int computeLocalSizeX, int computeLocalSizeY, int computeLocalSizeZ)
@@ -365,6 +370,7 @@ namespace Ryujinx.Graphics.Shader.Translation
             definitions.OriginalStage = Stage;
             definitions.OutputTopology = OutputTopology;
             definitions.MaxOutputVertices = MaxOutputVertices;
+            definitions.ThreadsPerInputPrimitive = ThreadsPerInputPrimitive;
 
             return definitions;
         }

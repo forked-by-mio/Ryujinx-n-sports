@@ -278,15 +278,9 @@ namespace Ryujinx.Graphics.Shader.Translation
 
         private ResourceManager CreateResourceManager(bool vertexAsCompute)
         {
-            bool isTransformFeedbackEmulated = !GpuAccessor.QueryHostSupportsTransformFeedback() && GpuAccessor.QueryTransformFeedbackEnabled();
+            ResourceManager resourceManager = new ResourceManager(Definitions.Stage, GpuAccessor, GetResourceReservations());
 
-            ResourceManager resourceManager = new ResourceManager(
-                Definitions.Stage,
-                GpuAccessor,
-                isTransformFeedbackEmulated,
-                vertexAsCompute,
-                _vertexOutput,
-                _program.GetIoUsage());
+            bool isTransformFeedbackEmulated = !GpuAccessor.QueryHostSupportsTransformFeedback() && GpuAccessor.QueryTransformFeedbackEnabled();
 
             if (isTransformFeedbackEmulated)
             {
@@ -410,12 +404,14 @@ namespace Ryujinx.Graphics.Shader.Translation
         {
             bool isTransformFeedbackEmulated = !GpuAccessor.QueryHostSupportsTransformFeedback() && GpuAccessor.QueryTransformFeedbackEnabled();
 
-            return new ResourceReservations(
-                GpuAccessor,
-                isTransformFeedbackEmulated,
-                vertexAsCompute: true,
-                _vertexOutput,
-                _program.GetIoUsage());
+            IoUsage ioUsage = _program.GetIoUsage();
+
+            if (Definitions.GpPassthrough)
+            {
+                ioUsage = ioUsage.Combine(_vertexOutput);
+            }
+
+            return new ResourceReservations(GpuAccessor, isTransformFeedbackEmulated, vertexAsCompute: true, _vertexOutput, ioUsage);
         }
 
         public void SetVertexOutputMapForGeometryAsCompute(TranslatorContext vertexContext)

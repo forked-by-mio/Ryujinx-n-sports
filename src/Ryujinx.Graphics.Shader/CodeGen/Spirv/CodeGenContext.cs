@@ -25,8 +25,6 @@ namespace Ryujinx.Graphics.Shader.CodeGen.Spirv
         public HostCapabilities HostCapabilities { get; }
         public TargetApi TargetApi { get; }
 
-        public int InputVertices { get; }
-
         public Dictionary<int, Instruction> ConstantBuffers { get; } = new Dictionary<int, Instruction>();
         public Dictionary<int, Instruction> StorageBuffers { get; } = new Dictionary<int, Instruction>();
 
@@ -101,19 +99,6 @@ namespace Ryujinx.Graphics.Shader.CodeGen.Spirv
             Properties = properties;
             HostCapabilities = hostCapabilities;
             TargetApi = targetApi;
-
-            if (definitions.Stage == ShaderStage.Geometry)
-            {
-                InputVertices = definitions.InputTopology switch
-                {
-                    InputTopology.Points => 1,
-                    InputTopology.Lines => 2,
-                    InputTopology.LinesAdjacency => 2,
-                    InputTopology.Triangles => 3,
-                    InputTopology.TrianglesAdjacency => 3,
-                    _ => throw new InvalidOperationException($"Invalid input topology \"{definitions.InputTopology}\".")
-                };
-            }
 
             AddCapability(Capability.Shader);
             AddCapability(Capability.Float64);

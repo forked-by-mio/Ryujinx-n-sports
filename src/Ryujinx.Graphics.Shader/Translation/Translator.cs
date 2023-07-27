@@ -146,6 +146,7 @@ namespace Ryujinx.Graphics.Shader.Translation
                 definitions.Stage,
                 geometryVerticesPerPrimitive,
                 definitions.MaxOutputVertices,
+                definitions.ThreadsPerInputPrimitive,
                 usedFeatures.HasFlag(FeatureFlags.InstanceId),
                 usedFeatures.HasFlag(FeatureFlags.DrawParameters),
                 usedFeatures.HasFlag(FeatureFlags.RtLayer),
@@ -293,7 +294,15 @@ namespace Ryujinx.Graphics.Shader.Translation
                 case ShaderStage.Geometry:
                     inputTopology = gpuAccessor.QueryPrimitiveTopology();
                     outputTopology = header.OutputTopology;
-                    maxOutputVertexCount = header.MaxOutputVertexCount;
+
+                    if (header.GpPassthrough)
+                    {
+                        maxOutputVertexCount = inputTopology.ToInputVerticesNoAdjacency();
+                    }
+                    else
+                    {
+                        maxOutputVertexCount = header.MaxOutputVertexCount;
+                    }
                     break;
                 case ShaderStage.Fragment:
                     dualSourceBlend = gpuAccessor.QueryDualSourceBlendEnable();
