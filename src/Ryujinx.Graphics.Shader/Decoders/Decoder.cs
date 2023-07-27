@@ -418,6 +418,12 @@ namespace Ryujinx.Graphics.Shader.Decoders
                                         context.SetUsedFeature(FeatureFlags.RtLayer);
                                     }
                                     break;
+                                case AttributeConsts.ViewportIndex:
+                                    if (definitions.Stage != ShaderStage.Fragment)
+                                    {
+                                        context.SetUsedFeature(FeatureFlags.ViewportIndex);
+                                    }
+                                    break;
                                 case AttributeConsts.ClipDistance0:
                                 case AttributeConsts.ClipDistance1:
                                 case AttributeConsts.ClipDistance2:
@@ -429,6 +435,12 @@ namespace Ryujinx.Graphics.Shader.Decoders
                                     if (definitions.Stage == ShaderStage.Vertex)
                                     {
                                         context.SetClipDistanceWritten((attr - AttributeConsts.ClipDistance0) / 4);
+                                    }
+                                    break;
+                                case AttributeConsts.ViewportMask:
+                                    if (definitions.Stage != ShaderStage.Fragment)
+                                    {
+                                        context.SetUsedFeature(FeatureFlags.ViewportMask);
                                     }
                                     break;
                             }
