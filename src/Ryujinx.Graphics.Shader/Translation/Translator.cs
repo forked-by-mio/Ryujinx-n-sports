@@ -143,7 +143,7 @@ namespace Ryujinx.Graphics.Shader.Translation
                 resourceManager.GetImageDescriptors(),
                 identification,
                 layerInputAttr,
-                definitions.Stage,
+                definitions.StageAsCompute ? definitions.OriginalStage : definitions.Stage,
                 geometryVerticesPerPrimitive,
                 definitions.MaxOutputVertices,
                 definitions.ThreadsPerInputPrimitive,
