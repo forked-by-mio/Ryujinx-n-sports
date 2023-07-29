@@ -1,10 +1,8 @@
 using System;
-using System.Diagnostics.CodeAnalysis;
 
 namespace Ryujinx.Graphics.Shader.IntermediateRepresentation
 {
     [Flags]
-    [SuppressMessage("Design", "CA1069: Enums values should not be duplicated")]
     enum Instruction
     {
         Absolute = 1,
@@ -161,6 +159,12 @@ namespace Ryujinx.Graphics.Shader.IntermediateRepresentation
         {
             inst &= Instruction.Mask;
             return inst == Instruction.Lod || inst == Instruction.TextureSize;
+        }
+
+        public static bool IsImage(this Instruction inst)
+        {
+            inst &= Instruction.Mask;
+            return inst == Instruction.ImageAtomic || inst == Instruction.ImageLoad || inst == Instruction.ImageStore;
         }
     }
 }

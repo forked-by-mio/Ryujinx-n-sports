@@ -30,6 +30,7 @@ namespace Ryujinx.Graphics.GAL
         public readonly bool SupportsGeometryShader;
         public readonly bool SupportsGeometryShaderPassthrough;
         public readonly bool SupportsTransformFeedback;
+        public readonly bool SupportsImageBufferPixelAlignment;
         public readonly bool SupportsImageLoadFormatted;
         public readonly bool SupportsLayerVertexTessellation;
         public readonly bool SupportsMismatchingViewFormat;
@@ -38,6 +39,7 @@ namespace Ryujinx.Graphics.GAL
         public readonly bool SupportsShaderBallot;
         public readonly bool SupportsShaderBarrierDivergence;
         public readonly bool SupportsShaderFloat64;
+        public readonly bool SupportsTextureBufferPixelAlignment;
         public readonly bool SupportsTextureShadowLod;
         public readonly bool SupportsVertexStoreAndAtomics;
         public readonly bool SupportsViewportIndexVertexTessellation;
@@ -84,6 +86,7 @@ namespace Ryujinx.Graphics.GAL
             bool supportsGeometryShader,
             bool supportsGeometryShaderPassthrough,
             bool supportsTransformFeedback,
+            bool supportsImageBufferPixelAlignment,
             bool supportsImageLoadFormatted,
             bool supportsLayerVertexTessellation,
             bool supportsMismatchingViewFormat,
@@ -92,6 +95,7 @@ namespace Ryujinx.Graphics.GAL
             bool supportsShaderBallot,
             bool supportsShaderBarrierDivergence,
             bool supportsShaderFloat64,
+            bool supportsTextureBufferPixelAlignment,
             bool supportsTextureShadowLod,
             bool supportsVertexStoreAndAtomics,
             bool supportsViewportIndexVertexTessellation,
@@ -134,6 +138,7 @@ namespace Ryujinx.Graphics.GAL
             SupportsGeometryShader = supportsGeometryShader;
             SupportsGeometryShaderPassthrough = supportsGeometryShaderPassthrough;
             SupportsTransformFeedback = supportsTransformFeedback;
+            SupportsImageBufferPixelAlignment = supportsImageBufferPixelAlignment;
             SupportsImageLoadFormatted = supportsImageLoadFormatted;
             SupportsLayerVertexTessellation = supportsLayerVertexTessellation;
             SupportsMismatchingViewFormat = supportsMismatchingViewFormat;
@@ -142,6 +147,7 @@ namespace Ryujinx.Graphics.GAL
             SupportsShaderBallot = supportsShaderBallot;
             SupportsShaderBarrierDivergence = supportsShaderBarrierDivergence;
             SupportsShaderFloat64 = supportsShaderFloat64;
+            SupportsTextureBufferPixelAlignment = supportsTextureBufferPixelAlignment;
             SupportsTextureShadowLod = supportsTextureShadowLod;
             SupportsVertexStoreAndAtomics = supportsVertexStoreAndAtomics;
             SupportsViewportIndexVertexTessellation = supportsViewportIndexVertexTessellation;
