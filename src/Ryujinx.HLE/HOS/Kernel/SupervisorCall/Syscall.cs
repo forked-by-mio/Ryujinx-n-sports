@@ -57,7 +57,7 @@ namespace Ryujinx.HLE.HOS.Kernel.SupervisorCall
             ProcessCreationInfo info,
             ReadOnlySpan<uint> capabilities,
             IProcessContextFactory contextFactory,
-            ThreadStart customThreadStart = null)
+            ParameterizedThreadStart customThreadStart = null)
         {
             handle = 0;
 
@@ -2511,7 +2511,7 @@ namespace Ryujinx.HLE.HOS.Kernel.SupervisorCall
             ulong stackTop,
             int priority,
             int cpuCore,
-            ThreadStart customThreadStart)
+            ParameterizedThreadStart customThreadStart)
         {
             handle = 0;
 

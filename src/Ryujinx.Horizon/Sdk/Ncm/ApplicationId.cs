@@ -1,6 +1,8 @@
-﻿namespace Ryujinx.Horizon.Sdk.Ncm
+﻿using System;
+
+namespace Ryujinx.Horizon.Sdk.Ncm
 {
-    readonly struct ApplicationId
+    readonly struct ApplicationId : IEquatable<ApplicationId>
     {
         public readonly ulong Id;
 

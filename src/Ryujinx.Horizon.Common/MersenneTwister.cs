@@ -1,8 +1,8 @@
 using System.Numerics;
 
-namespace Ryujinx.HLE.HOS.Kernel.Common
+namespace Ryujinx.Horizon.Common
 {
-    class MersenneTwister
+    public class MersenneTwister
     {
         private int _index;
         private readonly uint[] _mt;

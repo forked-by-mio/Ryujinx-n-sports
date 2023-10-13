@@ -20,7 +20,7 @@ namespace Ryujinx.HLE.HOS.Kernel
             ProcessCreationInfo creationInfo,
             ReadOnlySpan<uint> capabilities,
             int mainThreadPriority,
-            ThreadStart customThreadStart)
+            ParameterizedThreadStart customThreadStart)
         {
             KProcess process = new(context);
 

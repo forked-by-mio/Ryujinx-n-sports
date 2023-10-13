@@ -249,7 +249,7 @@ namespace Ryujinx.HLE.HOS.Kernel.Threading
             }
         }
 
-        private void IdleThreadLoop()
+        private void IdleThreadLoop(object obj)
         {
             while (_context.Running)
             {

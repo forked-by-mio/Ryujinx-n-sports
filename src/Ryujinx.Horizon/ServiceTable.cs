@@ -2,6 +2,7 @@ using Ryujinx.Horizon.Bcat;
 using Ryujinx.Horizon.Lbl;
 using Ryujinx.Horizon.LogManager;
 using Ryujinx.Horizon.MmNv;
+using Ryujinx.Horizon.Ncm;
 using Ryujinx.Horizon.Ngc;
 using Ryujinx.Horizon.Prepo;
 using Ryujinx.Horizon.Wlan;
@@ -33,6 +34,7 @@ namespace Ryujinx.Horizon
             RegisterService<PrepoMain>();
             RegisterService<WlanMain>();
             RegisterService<NgcMain>();
+            RegisterService<NcmMain>();
 
             _totalServices = entries.Count;
 

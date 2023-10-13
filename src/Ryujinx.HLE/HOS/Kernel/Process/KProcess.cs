@@ -67,7 +67,7 @@ namespace Ryujinx.HLE.HOS.Kernel.Process
         public ulong Pid { get; private set; }
 
         private ulong _entrypoint;
-        private ThreadStart _customThreadStart;
+        private ParameterizedThreadStart _customThreadStart;
         private ulong _imageSize;
         private ulong _mainThreadStackSize;
         private ulong _memoryUsageCapacity;
@@ -119,7 +119,7 @@ namespace Ryujinx.HLE.HOS.Kernel.Process
             KResourceLimit resourceLimit,
             MemoryRegion memRegion,
             IProcessContextFactory contextFactory,
-            ThreadStart customThreadStart = null)
+            ParameterizedThreadStart customThreadStart = null)
         {
             ResourceLimit = resourceLimit;
             _memRegion = memRegion;
@@ -189,7 +189,7 @@ namespace Ryujinx.HLE.HOS.Kernel.Process
             KResourceLimit resourceLimit,
             MemoryRegion memRegion,
             IProcessContextFactory contextFactory,
-            ThreadStart customThreadStart = null)
+            ParameterizedThreadStart customThreadStart = null)
         {
             ResourceLimit = resourceLimit;
             _memRegion = memRegion;
@@ -730,7 +730,7 @@ namespace Ryujinx.HLE.HOS.Kernel.Process
             ulong stackTop,
             int priority,
             int cpuCore,
-            ThreadStart customThreadStart = null)
+            ParameterizedThreadStart customThreadStart = null)
         {
             lock (_processLock)
             {

@@ -37,18 +37,21 @@ namespace Ryujinx.Horizon
 
         public ulong Allocate(ulong size, ulong alignment = 1UL)
         {
-            ulong address = AllocateImpl(size, alignment);
-
-            if (address == InvalidAddress)
+            lock (_freeRanges)
             {
-                ExpandHeap(size + alignment - 1UL);
+                ulong address = AllocateImpl(size, alignment);
 
-                address = AllocateImpl(size, alignment);
+                if (address == InvalidAddress)
+                {
+                    ExpandHeap(size + alignment - 1UL);
 
-                Debug.Assert(address != InvalidAddress);
+                    address = AllocateImpl(size, alignment);
+
+                    Debug.Assert(address != InvalidAddress);
+                }
+
+                return address;
             }
-
-            return address;
         }
 
         private void ExpandHeap(ulong expansionSize)
@@ -98,7 +101,10 @@ namespace Ryujinx.Horizon
 
         public void Free(ulong offset, ulong size)
         {
-            InsertFreeRangeComingled(offset, size);
+            lock (_freeRanges)
+            {
+                InsertFreeRangeComingled(offset, size);
+            }
         }
 
         private void InsertFreeRange(ulong offset, ulong size)

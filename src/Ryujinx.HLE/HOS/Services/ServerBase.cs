@@ -163,7 +163,7 @@ namespace Ryujinx.HLE.HOS.Services
             }
         }
 
-        private void Main()
+        private void Main(object obj)
         {
             ServerLoop();
         }

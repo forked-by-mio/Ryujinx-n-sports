@@ -36,6 +36,7 @@ using Ryujinx.HLE.HOS.SystemState;
 using Ryujinx.HLE.Loaders.Executables;
 using Ryujinx.HLE.Loaders.Processes;
 using Ryujinx.Horizon;
+using Ryujinx.Horizon.Common;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -354,9 +355,10 @@ namespace Ryujinx.HLE.HOS
                 // TODO:
                 // - Pass enough information (capabilities, process creation info, etc) on ServiceEntry for proper initialization.
                 // - Have the ThreadStart function take the syscall, address space and thread context parameters instead of passing them here.
-                KernelStatic.StartInitialProcess(KernelContext, creationInfo, defaultCapabilities, 44, () =>
+                KernelStatic.StartInitialProcess(KernelContext, creationInfo, defaultCapabilities, 44, (obj) =>
                 {
-                    service.Start(KernelContext.Syscall, KernelStatic.GetCurrentProcess().CpuMemory, KernelStatic.GetCurrentThread().ThreadContext);
+                    IThreadContext context = (IThreadContext)obj;
+                    service.Start(KernelContext.Syscall, KernelStatic.GetCurrentProcess().CpuMemory, context);
                 });
             }
         }
@@ -469,7 +471,7 @@ namespace Ryujinx.HLE.HOS
                 KProcess terminationProcess = new(KernelContext);
                 KThread terminationThread = new(KernelContext);
 
-                terminationThread.Initialize(0, 0, 0, 3, 0, terminationProcess, ThreadType.Kernel, () =>
+                terminationThread.Initialize(0, 0, 0, 3, 0, terminationProcess, ThreadType.Kernel, (obj) =>
                 {
                     // Force all threads to exit.
                     lock (KernelContext.Processes)

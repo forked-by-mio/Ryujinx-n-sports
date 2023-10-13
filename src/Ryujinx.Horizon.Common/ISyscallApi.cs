@@ -1,10 +1,14 @@
 ﻿using System;
+using System.Threading;
 
 namespace Ryujinx.Horizon.Common
 {
     public interface ISyscallApi
     {
         Result SetHeapSize(out ulong address, ulong size);
+
+        Result CreateThread(out int handle, ulong entrypoint, ulong argsPtr, ulong stackTop, int priority, int cpuCore, ParameterizedThreadStart customThreadStart);
+        Result StartThread(int handle);
 
         void SleepThread(long timeout);
 

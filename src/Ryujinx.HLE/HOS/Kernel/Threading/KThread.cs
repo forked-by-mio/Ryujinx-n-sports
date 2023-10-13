@@ -42,7 +42,7 @@ namespace Ryujinx.HLE.HOS.Kernel.Threading
         public ulong CondVarAddress { get; set; }
 
         private ulong _entrypoint;
-        private ThreadStart _customThreadStart;
+        private ParameterizedThreadStart _customThreadStart;
         private bool _forcedUnschedulable;
 
         public bool IsSchedulable => _customThreadStart == null && !_forcedUnschedulable;
@@ -133,7 +133,7 @@ namespace Ryujinx.HLE.HOS.Kernel.Threading
             int cpuCore,
             KProcess owner,
             ThreadType type,
-            ThreadStart customThreadStart = null)
+            ParameterizedThreadStart customThreadStart = null)
         {
             if ((uint)type > 3)
             {
@@ -1253,7 +1253,7 @@ namespace Ryujinx.HLE.HOS.Kernel.Threading
 
             if (_customThreadStart != null)
             {
-                _customThreadStart();
+                _customThreadStart(ThreadContext);
 
                 // Ensure that anything trying to join the HLE thread is unblocked.
                 Exit();

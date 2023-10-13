@@ -100,6 +100,14 @@ namespace Ryujinx.Horizon.Common
             }
         }
 
+        public void ThrowOnInvalidResult()
+        {
+            if (this != Success)
+            {
+                ThrowInvalidResult();
+            }
+        }
+
         private void ThrowInvalidResult()
         {
             throw new InvalidResultException(this);
