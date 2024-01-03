@@ -1937,18 +1937,18 @@ namespace Ryujinx.HLE.HOS.Kernel.Memory
             {
                 ulong alignedSize = endAddrTruncated - addressRounded;
 
+                KPageList pageList = new();
+                srcPageTable.GetPhysicalRegions(addressRounded, alignedSize, pageList);
+
                 Result result;
 
                 if (srcPageTable.Supports4KBPages)
                 {
-                    KPageList pageList = new();
-                    srcPageTable.GetPhysicalRegions(addressRounded, alignedSize, pageList);
-
                     result = MapPages(currentVa, pageList, permission, MemoryMapFlags.None);
                 }
                 else
                 {
-                    result = MapForeign(srcPageTable.GetHostRegions(addressRounded, alignedSize), currentVa, alignedSize);
+                    result = MapForeign(srcPageTable.GetHostRegions(addressRounded, alignedSize), pageList, currentVa, alignedSize);
                 }
 
                 if (result != Result.Success)
@@ -3013,10 +3013,11 @@ namespace Ryujinx.HLE.HOS.Kernel.Memory
         /// Maps pages into an arbitrary host memory location.
         /// </summary>
         /// <param name="regions">Host regions to be mapped into the specified virtual memory region</param>
+        /// <param name="pageList">List of physical memory pages where the pages might be mapped. May be ignored if aliasing is not supported</param>
         /// <param name="va">Destination virtual address of the range on this page table</param>
         /// <param name="size">Size of the range</param>
         /// <returns>Result of the mapping operation</returns>
-        protected abstract Result MapForeign(IEnumerable<HostMemoryRange> regions, ulong va, ulong size);
+        protected abstract Result MapForeign(IEnumerable<HostMemoryRange> regions, KPageList pageList, ulong va, ulong size);
 
         /// <summary>
         /// Unmaps a region of memory that was previously mapped with one of the page mapping methods.

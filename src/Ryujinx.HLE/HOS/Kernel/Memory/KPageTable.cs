@@ -163,8 +163,15 @@ namespace Ryujinx.HLE.HOS.Kernel.Memory
         }
 
         /// <inheritdoc/>
-        protected override Result MapForeign(IEnumerable<HostMemoryRange> regions, ulong va, ulong size)
+        protected override Result MapForeign(IEnumerable<HostMemoryRange> regions, KPageList pageList, ulong va, ulong size)
         {
+            using var scopedPageList = new KScopedPageList(Context.MemoryManager, pageList);
+
+            foreach (var pageNode in pageList)
+            {
+                Context.CommitMemory(pageNode.Address - DramMemoryMap.DramBase, pageNode.PagesCount * PageSize);
+            }
+
             ulong offset = 0;
 
             foreach (var region in regions)
@@ -173,6 +180,8 @@ namespace Ryujinx.HLE.HOS.Kernel.Memory
 
                 offset += region.Size;
             }
+
+            scopedPageList.SignalSuccess();
 
             return Result.Success;
         }
