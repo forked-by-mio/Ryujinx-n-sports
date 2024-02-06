@@ -10,12 +10,14 @@ namespace Ryujinx.Graphics.Vulkan
         private readonly Device _device;
         private Fence _fence;
         private int _referenceCount;
+        private readonly bool _alwaysWaits;
         private bool _disposed;
 
-        public unsafe FenceHolder(Vk api, Device device)
+        public unsafe FenceHolder(Vk api, Device device, bool alwaysWaits)
         {
             _api = api;
             _device = device;
+            _alwaysWaits = alwaysWaits;
 
             var fenceCreateInfo = new FenceCreateInfo
             {
@@ -74,6 +76,16 @@ namespace Ryujinx.Graphics.Vulkan
             };
 
             FenceHelper.WaitAllIndefinitely(_api, _device, fences);
+        }
+
+        public bool IsSignaledLazy()
+        {
+            if (_alwaysWaits)
+            {
+                return false;
+            }
+
+            return IsSignaled();
         }
 
         public bool IsSignaled()
