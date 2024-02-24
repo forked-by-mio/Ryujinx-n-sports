@@ -188,6 +188,58 @@ namespace Ryujinx.Graphics.Shader.CodeGen.Glsl.Instructions
             return texCallBuilder.ToString();
         }
 
+        public static string ImageQuerySamples(CodeGenContext context, AstOperation operation)
+        {
+            AstTextureOperation texOp = (AstTextureOperation)operation;
+
+            bool isBindless = (texOp.Flags & TextureFlags.Bindless) != 0;
+
+            // TODO: Bindless texture support. For now we just return 0.
+            if (isBindless)
+            {
+                return NumberFormatter.FormatInt(0);
+            }
+
+            bool isIndexed = (texOp.Type & SamplerType.Indexed) != 0;
+
+            string indexExpr = null;
+
+            if (isIndexed)
+            {
+                indexExpr = GetSoureExpr(context, texOp.GetSource(0), AggregateType.S32);
+            }
+
+            string imageName = GetImageName(context.Properties, texOp, indexExpr);
+
+            return $"imageSamples({imageName})";
+        }
+
+        public static string ImageQuerySize(CodeGenContext context, AstOperation operation)
+        {
+            AstTextureOperation texOp = (AstTextureOperation)operation;
+
+            bool isBindless = (texOp.Flags & TextureFlags.Bindless) != 0;
+
+            // TODO: Bindless texture support. For now we just return 0.
+            if (isBindless)
+            {
+                return NumberFormatter.FormatInt(0);
+            }
+
+            bool isIndexed = (texOp.Type & SamplerType.Indexed) != 0;
+
+            string indexExpr = null;
+
+            if (isIndexed)
+            {
+                indexExpr = GetSoureExpr(context, texOp.GetSource(0), AggregateType.S32);
+            }
+
+            string imageName = GetImageName(context.Properties, texOp, indexExpr);
+
+            return $"imageSize({imageName}){GetMask(texOp.Index)}";
+        }
+
         public static string Load(CodeGenContext context, AstOperation operation)
         {
             return GenerateLoadOrStore(context, operation, isStore: false);

@@ -295,6 +295,15 @@ namespace Ryujinx.Graphics.Shader
         }
 
         /// <summary>
+        /// Queries host support for image stores or atomic operations with coordinates that are greater than or equal to the image size.
+        /// </summary>
+        /// <returns>True if out of bounds image stores is supported, false otherwise</returns>
+        bool QueryHostSupportsOutOfBoundsImageStores()
+        {
+            return true;
+        }
+
+        /// <summary>
         /// Queries host support scaled vertex formats, where a integer value is converted to floating-point.
         /// </summary>
         /// <returns>True if the host support scaled vertex formats, false otherwise</returns>

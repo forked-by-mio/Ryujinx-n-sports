@@ -165,6 +165,7 @@ namespace Ryujinx.Graphics.OpenGL
                 supportsMismatchingViewFormat: HwCapabilities.SupportsMismatchingViewFormat,
                 supportsCubemapView: true,
                 supportsNonConstantTextureOffset: HwCapabilities.SupportsNonConstantTextureOffset,
+                supportsOutOfBoundsImageStores: true,
                 supportsScaledVertexFormats: true,
                 supportsShaderBallot: HwCapabilities.SupportsShaderBallot,
                 supportsShaderBarrierDivergence: !(intelWindows || intelUnix),

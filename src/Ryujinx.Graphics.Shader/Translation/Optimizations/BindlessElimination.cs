@@ -177,9 +177,7 @@ namespace Ryujinx.Graphics.Shader.Translation.Optimizations
                             isImage: false);
                     }
                 }
-                else if (texOp.Inst == Instruction.ImageLoad ||
-                         texOp.Inst == Instruction.ImageStore ||
-                         texOp.Inst == Instruction.ImageAtomic)
+                else if (texOp.Inst.IsImage())
                 {
                     Operand src0 = Utils.FindLastOperation(texOp.GetSource(0), block);
 

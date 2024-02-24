@@ -77,9 +77,11 @@ namespace Ryujinx.Graphics.Shader.CodeGen.Glsl.Instructions
             Add(Instruction.Floor,                    InstType.CallUnary,      "floor");
             Add(Instruction.FusedMultiplyAdd,         InstType.CallTernary,    "fma");
             Add(Instruction.GroupMemoryBarrier,       InstType.CallNullary,    "groupMemoryBarrier");
-            Add(Instruction.ImageLoad,                InstType.Special);
-            Add(Instruction.ImageStore,               InstType.Special);
             Add(Instruction.ImageAtomic,              InstType.Special);
+            Add(Instruction.ImageLoad,                InstType.Special);
+            Add(Instruction.ImageQuerySamples,        InstType.Special);
+            Add(Instruction.ImageQuerySize,           InstType.Special);
+            Add(Instruction.ImageStore,               InstType.Special);
             Add(Instruction.IsNan,                    InstType.CallUnary,      "isnan");
             Add(Instruction.Load,                     InstType.Special);
             Add(Instruction.Lod,                      InstType.Special);

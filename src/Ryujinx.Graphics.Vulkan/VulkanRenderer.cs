@@ -653,6 +653,7 @@ namespace Ryujinx.Graphics.Vulkan
                 supportsMismatchingViewFormat: true,
                 supportsCubemapView: !IsAmdGcn,
                 supportsNonConstantTextureOffset: false,
+                supportsOutOfBoundsImageStores: Vendor != Vendor.Apple,
                 supportsScaledVertexFormats: FormatCapabilities.SupportsScaledVertexFormats(),
                 supportsShaderBallot: false,
                 supportsShaderBarrierDivergence: Vendor != Vendor.Intel,

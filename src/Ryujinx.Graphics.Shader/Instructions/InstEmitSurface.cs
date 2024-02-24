@@ -228,6 +228,7 @@ namespace Ryujinx.Graphics.Shader.Instructions
                 sourcesList.Add(context.Copy(GetSrcReg(context, srcC)));
             }
 
+            int coordsStartIndex = sourcesList.Count;
             int coordsCount = type.GetDimensions();
 
             for (int index = 0; index < coordsCount; index++)
@@ -252,9 +253,7 @@ namespace Ryujinx.Graphics.Shader.Instructions
 
             if (byteAddress)
             {
-                int xIndex = isBindless ? 1 : 0;
-
-                sourcesList[xIndex] = context.ShiftRightS32(sourcesList[xIndex], Const(GetComponentSizeInBytesLog2(size)));
+                sourcesList[coordsStartIndex] = context.ShiftRightS32(sourcesList[coordsStartIndex], Const(GetComponentSizeInBytesLog2(size)));
             }
 
             // TODO: FP and 64-bit formats.
@@ -286,9 +285,37 @@ namespace Ryujinx.Graphics.Shader.Instructions
                 TextureOperation.DefaultCbufSlot,
                 imm);
 
-            Operand res = context.ImageAtomic(type, format, flags, binding, sources);
+            if (context.TranslatorContext.GpuAccessor.QueryHostSupportsOutOfBoundsImageStores())
+            {
+                Operand res = context.ImageAtomic(type, format, flags, binding, sources);
 
-            context.Copy(d, res);
+                context.Copy(d, res);
+            }
+            else
+            {
+                Operand lblOutOfBounds = Label();
+                Operand lblEnd = Label();
+
+                for (int index = 0; index < coordsCount; index++)
+                {
+                    Operand[] imageSizeSources = isBindless ? new Operand[] { sources[0] } : Array.Empty<Operand>();
+                    Operand imageSize = context.ImageQuerySize(type, format, flags, binding, index, imageSizeSources);
+
+                    context.BranchIfFalse(lblOutOfBounds, context.ICompareLess(sources[coordsStartIndex + index], imageSize));
+                }
+
+                Operand res = context.ImageAtomic(type, format, flags, binding, sources);
+
+                context.Copy(d, res);
+                context.Branch(lblEnd);
+
+                context.MarkLabel(lblOutOfBounds);
+
+                // If the access is out of bounds, set zero to the destination.
+                context.Copy(d, Const(0));
+
+                context.MarkLabel(lblEnd);
+            }
         }
 
         private static void EmitSuld(
@@ -507,6 +534,7 @@ namespace Ryujinx.Graphics.Shader.Instructions
                 sourcesList.Add(context.Copy(GetSrcReg(context, srcC)));
             }
 
+            int coordsStartIndex = sourcesList.Count;
             int coordsCount = type.GetDimensions();
 
             for (int index = 0; index < coordsCount; index++)
@@ -531,9 +559,7 @@ namespace Ryujinx.Graphics.Shader.Instructions
 
             if (byteAddress)
             {
-                int xIndex = isBindless ? 1 : 0;
-
-                sourcesList[xIndex] = context.ShiftRightS32(sourcesList[xIndex], Const(GetComponentSizeInBytesLog2(size)));
+                sourcesList[coordsStartIndex] = context.ShiftRightS32(sourcesList[coordsStartIndex], Const(GetComponentSizeInBytesLog2(size)));
             }
 
             // TODO: FP and 64-bit formats.
@@ -560,7 +586,26 @@ namespace Ryujinx.Graphics.Shader.Instructions
                 TextureOperation.DefaultCbufSlot,
                 imm);
 
-            context.ImageAtomic(type, format, flags, binding, sources);
+            if (context.TranslatorContext.GpuAccessor.QueryHostSupportsOutOfBoundsImageStores())
+            {
+                context.ImageAtomic(type, format, flags, binding, sources);
+            }
+            else
+            {
+                Operand lblSkip = Label();
+
+                for (int index = 0; index < coordsCount; index++)
+                {
+                    Operand[] imageSizeSources = isBindless ? new Operand[] { sources[0] } : Array.Empty<Operand>();
+                    Operand imageSize = context.ImageQuerySize(type, format, flags, binding, index, imageSizeSources);
+
+                    context.BranchIfFalse(lblSkip, context.ICompareLess(sources[coordsStartIndex + index], imageSize));
+                }
+
+                context.ImageAtomic(type, format, flags, binding, sources);
+
+                context.MarkLabel(lblSkip);
+            }
         }
 
         private static void EmitSust(
@@ -612,6 +657,7 @@ namespace Ryujinx.Graphics.Shader.Instructions
                 sourcesList.Add(context.Copy(Register(srcC, RegisterType.Gpr)));
             }
 
+            int coordsStartIndex = sourcesList.Count;
             int coordsCount = type.GetDimensions();
 
             for (int index = 0; index < coordsCount; index++)
@@ -653,9 +699,7 @@ namespace Ryujinx.Graphics.Shader.Instructions
             {
                 if (byteAddress)
                 {
-                    int xIndex = isBindless ? 1 : 0;
-
-                    sourcesList[xIndex] = context.ShiftRightS32(sourcesList[xIndex], Const(GetComponentSizeInBytesLog2(size)));
+                    sourcesList[coordsStartIndex] = context.ShiftRightS32(sourcesList[coordsStartIndex], Const(GetComponentSizeInBytesLog2(size)));
                 }
 
                 int components = GetComponents(size);
@@ -687,7 +731,26 @@ namespace Ryujinx.Graphics.Shader.Instructions
                 TextureOperation.DefaultCbufSlot,
                 handle);
 
-            context.ImageStore(type, format, flags, binding, sources);
+            if (context.TranslatorContext.GpuAccessor.QueryHostSupportsOutOfBoundsImageStores())
+            {
+                context.ImageStore(type, format, flags, binding, sources);
+            }
+            else
+            {
+                Operand lblSkip = Label();
+
+                for (int index = 0; index < coordsCount; index++)
+                {
+                    Operand[] imageSizeSources = isBindless ? new Operand[] { sources[0] } : Array.Empty<Operand>();
+                    Operand imageSize = context.ImageQuerySize(type, format, flags, binding, index, imageSizeSources);
+
+                    context.BranchIfFalse(lblSkip, context.ICompareLess(sources[coordsStartIndex + index], imageSize));
+                }
+
+                context.ImageStore(type, format, flags, binding, sources);
+
+                context.MarkLabel(lblSkip);
+            }
         }
 
         private static int GetComponentSizeInBytesLog2(SuatomSize size)

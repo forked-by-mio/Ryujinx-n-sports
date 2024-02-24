@@ -33,7 +33,8 @@ namespace Ryujinx.Graphics.Shader.CodeGen.Spirv
         public Dictionary<int, Instruction> LocalMemories { get; } = new();
         public Dictionary<int, Instruction> SharedMemories { get; } = new();
 
-        public Dictionary<int, SamplerType> SamplersTypes { get; } = new();
+        public Dictionary<int, SamplerType> SamplerTypes { get; } = new();
+        public Dictionary<int, SamplerType> ImageTypes { get; } = new();
         public Dictionary<int, (Instruction, Instruction, Instruction)> Samplers { get; } = new();
         public Dictionary<int, (Instruction, Instruction)> Images { get; } = new();
 

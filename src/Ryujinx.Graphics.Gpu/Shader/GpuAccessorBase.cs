@@ -176,6 +176,8 @@ namespace Ryujinx.Graphics.Gpu.Shader
 
         public bool QueryHostSupportsNonConstantTextureOffset() => _context.Capabilities.SupportsNonConstantTextureOffset;
 
+        public bool QueryHostSupportsOutOfBoundsImageStores() => _context.Capabilities.SupportsOutOfBoundsImageStores;
+
         public bool QueryHostSupportsScaledVertexFormats() => _context.Capabilities.SupportsScaledVertexFormats;
 
         public bool QueryHostSupportsShaderBallot() => _context.Capabilities.SupportsShaderBallot;

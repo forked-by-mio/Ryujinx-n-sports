@@ -86,9 +86,11 @@ namespace Ryujinx.Graphics.Shader.StructuredIr
             Add(Instruction.FindMSBU32,               AggregateType.S32,    AggregateType.U32);
             Add(Instruction.Floor,                    AggregateType.Scalar, AggregateType.Scalar);
             Add(Instruction.FusedMultiplyAdd,         AggregateType.Scalar, AggregateType.Scalar,  AggregateType.Scalar,  AggregateType.Scalar);
-            Add(Instruction.ImageLoad,                AggregateType.FP32);
-            Add(Instruction.ImageStore,               AggregateType.Void);
             Add(Instruction.ImageAtomic,              AggregateType.S32);
+            Add(Instruction.ImageLoad,                AggregateType.FP32);
+            Add(Instruction.ImageQuerySamples,        AggregateType.S32,    AggregateType.S32);
+            Add(Instruction.ImageQuerySize,           AggregateType.S32,    AggregateType.S32);
+            Add(Instruction.ImageStore,               AggregateType.Void);
             Add(Instruction.IsNan,                    AggregateType.Bool,   AggregateType.Scalar);
             Add(Instruction.Load,                     AggregateType.FP32);
             Add(Instruction.Lod,                      AggregateType.FP32);

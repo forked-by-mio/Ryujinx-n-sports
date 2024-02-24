@@ -230,7 +230,7 @@ namespace Ryujinx.Graphics.Shader.Translation
             int handle)
         {
             inst &= Instruction.Mask;
-            bool isImage = inst == Instruction.ImageLoad || inst == Instruction.ImageStore || inst == Instruction.ImageAtomic;
+            bool isImage = inst.IsImage();
             bool isWrite = inst == Instruction.ImageStore || inst == Instruction.ImageAtomic;
             bool accurateType = !inst.IsTextureQuery();
             bool intCoords = isImage || flags.HasFlag(TextureFlags.IntCoords) || inst == Instruction.TextureQuerySize;

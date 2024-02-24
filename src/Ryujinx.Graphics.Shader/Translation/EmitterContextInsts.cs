@@ -641,6 +641,37 @@ namespace Ryujinx.Graphics.Shader.Translation
             context.Add(new TextureOperation(Instruction.ImageLoad, type, format, flags, binding, compMask, dests, sources));
         }
 
+        public static Operand ImageQuerySamples(
+            this EmitterContext context,
+            SamplerType type,
+            TextureFormat format,
+            TextureFlags flags,
+            int binding,
+            Operand[] sources)
+        {
+            Operand dest = Local();
+
+            context.Add(new TextureOperation(Instruction.ImageQuerySamples, type, format, flags, binding, 0, new[] { dest }, sources));
+
+            return dest;
+        }
+
+        public static Operand ImageQuerySize(
+            this EmitterContext context,
+            SamplerType type,
+            TextureFormat format,
+            TextureFlags flags,
+            int binding,
+            int compIndex,
+            Operand[] sources)
+        {
+            Operand dest = Local();
+
+            context.Add(new TextureOperation(Instruction.ImageQuerySize, type, format, flags, binding, compIndex, new[] { dest }, sources));
+
+            return dest;
+        }
+
         public static void ImageStore(
             this EmitterContext context,
             SamplerType type,

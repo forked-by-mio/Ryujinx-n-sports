@@ -156,10 +156,16 @@ namespace Ryujinx.Graphics.Shader.CodeGen.Glsl.Instructions
                     case Instruction.FSIEnd:
                         return FSIEnd(context);
 
+                    case Instruction.ImageAtomic:
                     case Instruction.ImageLoad:
                     case Instruction.ImageStore:
-                    case Instruction.ImageAtomic:
                         return ImageLoadOrStore(context, operation);
+
+                    case Instruction.ImageQuerySamples:
+                        return ImageQuerySamples(context, operation);
+
+                    case Instruction.ImageQuerySize:
+                        return ImageQuerySize(context, operation);
 
                     case Instruction.Load:
                         return Load(context, operation);

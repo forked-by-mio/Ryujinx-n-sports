@@ -95,6 +95,8 @@ namespace Ryujinx.Graphics.Shader.CodeGen.Spirv
             Add(Instruction.GroupMemoryBarrier,       GenerateGroupMemoryBarrier);
             Add(Instruction.ImageAtomic,              GenerateImageAtomic);
             Add(Instruction.ImageLoad,                GenerateImageLoad);
+            Add(Instruction.ImageQuerySamples,        GenerateImageQuerySamples);
+            Add(Instruction.ImageQuerySize,           GenerateImageQuerySize);
             Add(Instruction.ImageStore,               GenerateImageStore);
             Add(Instruction.IsNan,                    GenerateIsNan);
             Add(Instruction.Load,                     GenerateLoad);
@@ -741,6 +743,78 @@ namespace Ryujinx.Graphics.Shader.CodeGen.Spirv
             var result = GetSwizzledResult(context, texel, swizzledResultType, texOp.Index);
 
             return new OperationResult(componentType, result);
+        }
+
+        private static OperationResult GenerateImageQuerySamples(CodeGenContext context, AstOperation operation)
+        {
+            AstTextureOperation texOp = (AstTextureOperation)operation;
+
+            bool isBindless = (texOp.Flags & TextureFlags.Bindless) != 0;
+
+            // TODO: Bindless texture support. For now we just return 0.
+            if (isBindless)
+            {
+                return new OperationResult(AggregateType.S32, context.Constant(context.TypeS32(), 0));
+            }
+
+            bool isIndexed = (texOp.Type & SamplerType.Indexed) != 0;
+
+            if (isIndexed)
+            {
+                context.GetS32(texOp.GetSource(0));
+            }
+
+            (var imageType, var imageVariable) = context.Images[texOp.Binding];
+
+            var image = context.Load(imageType, imageVariable);
+
+            SpvInstruction result = context.ImageQuerySamples(context.TypeS32(), image);
+
+            return new OperationResult(AggregateType.S32, result);
+        }
+
+        private static OperationResult GenerateImageQuerySize(CodeGenContext context, AstOperation operation)
+        {
+            AstTextureOperation texOp = (AstTextureOperation)operation;
+
+            bool isBindless = (texOp.Flags & TextureFlags.Bindless) != 0;
+
+            // TODO: Bindless texture support. For now we just return 0.
+            if (isBindless)
+            {
+                return new OperationResult(AggregateType.S32, context.Constant(context.TypeS32(), 0));
+            }
+
+            bool isIndexed = (texOp.Type & SamplerType.Indexed) != 0;
+
+            if (isIndexed)
+            {
+                context.GetS32(texOp.GetSource(0));
+            }
+
+            (var imageType, var imageVariable) = context.Images[texOp.Binding];
+
+            var image = context.Load(imageType, imageVariable);
+
+            var type = context.ImageTypes[texOp.Binding];
+
+            int dimensions = (type & SamplerType.Mask) == SamplerType.TextureCube ? 2 : type.GetDimensions();
+
+            if (type.HasFlag(SamplerType.Array))
+            {
+                dimensions++;
+            }
+
+            var resultType = dimensions == 1 ? context.TypeS32() : context.TypeVector(context.TypeS32(), dimensions);
+
+            SpvInstruction result = context.ImageQuerySize(resultType, image);
+
+            if (dimensions != 1)
+            {
+                result = context.CompositeExtract(context.TypeS32(), result, (SpvLiteralInteger)texOp.Index);
+            }
+
+            return new OperationResult(AggregateType.S32, result);
         }
 
         private static OperationResult GenerateImageStore(CodeGenContext context, AstOperation operation)
@@ -1540,7 +1614,7 @@ namespace Ryujinx.Graphics.Shader.CodeGen.Spirv
             }
             else
             {
-                var type = context.SamplersTypes[texOp.Binding];
+                var type = context.SamplerTypes[texOp.Binding];
                 bool hasLod = !type.HasFlag(SamplerType.Multisample) && type != SamplerType.TextureBuffer;
 
                 int dimensions = (type & SamplerType.Mask) == SamplerType.TextureCube ? 2 : type.GetDimensions();

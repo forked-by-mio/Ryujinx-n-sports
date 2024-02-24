@@ -74,9 +74,11 @@ namespace Ryujinx.Graphics.Shader.IntermediateRepresentation
         Floor,
         FusedMultiplyAdd,
         GroupMemoryBarrier,
-        ImageLoad,
-        ImageStore,
         ImageAtomic,
+        ImageLoad,
+        ImageQuerySamples,
+        ImageQuerySize,
+        ImageStore,
         IsNan,
         Load,
         Lod,
@@ -156,10 +158,32 @@ namespace Ryujinx.Graphics.Shader.IntermediateRepresentation
             return false;
         }
 
+        public static bool IsImage(this Instruction inst)
+        {
+            switch (inst & Instruction.Mask)
+            {
+                case Instruction.ImageAtomic:
+                case Instruction.ImageLoad:
+                case Instruction.ImageQuerySamples:
+                case Instruction.ImageQuerySize:
+                case Instruction.ImageStore:
+                    return true;
+            }
+
+            return false;
+        }
+
         public static bool IsTextureQuery(this Instruction inst)
         {
-            inst &= Instruction.Mask;
-            return inst == Instruction.Lod || inst == Instruction.TextureQuerySamples || inst == Instruction.TextureQuerySize;
+            switch (inst & Instruction.Mask)
+            {
+                case Instruction.Lod:
+                case Instruction.TextureQuerySamples:
+                case Instruction.TextureQuerySize:
+                    return true;
+            }
+
+            return false;
         }
     }
 }
