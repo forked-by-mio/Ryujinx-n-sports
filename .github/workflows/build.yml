@@ -3,13 +3,7 @@ name: Build job
 on:
   workflow_dispatch:
     inputs: {}
-  #push:
-  #  branches: [ master ]
-  #  paths-ignore:
-  #    - '.github/*'
-  #    - '.github/ISSUE_TEMPLATE/**'
-  #    - '*.yml'
-  #    - 'README.md'
+  push:
   pull_request:
     branches: [ master ]
     paths-ignore:
